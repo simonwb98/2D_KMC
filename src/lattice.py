@@ -125,7 +125,7 @@ class Lattice:
             if y % 2 == 0:
                 neighbours = [(x, y - 1), (x, y + 1), (x - 1, y), (x + 1, y), (x - 1, y - 1), (x - 1, y + 1)]
             else:
-                neighbours = [(x, y - 1), (x, y + 1), (x - 1, y), (x + 1, y), (x - 1, y + 1), (x + 1, y + 1)]
+                neighbours = [(x, y - 1), (x, y + 1), (x - 1, y), (x + 1, y), (x + 1, y - 1), (x + 1, y + 1)]
 
         neighbours = list(map(lambda coord: self.wrap_coordinates(*coord), neighbours))
         return neighbours

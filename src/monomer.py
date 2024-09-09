@@ -30,7 +30,6 @@ class Monomer:
     def diffuse(self, lattice):
         diffusion_prob = self.diffusion_probability(lattice)
         neighbours = lattice.get_neighbours(*self.get_position())
-        print(diffusion_prob)
 
         if random.random() < diffusion_prob:
             x_new, y_new = random.choice(neighbours)
