@@ -99,6 +99,7 @@ class Lattice:
 
         if not self.is_occupied(x, y):
             self.grid[y][x] = monomer
+            monomer.set_position(x, y)
         else:
             pass
         
@@ -106,6 +107,16 @@ class Lattice:
     def remove_monomer(self, x, y):
         if self.is_occupied(x, y):
             self.grid[y][x] = None
+
+    def move_monomer(self, monomer, x_new, y_new):
+        # moves monomer from old coordinates to new ones
+        x_old, y_old = monomer.get_position()
+        if not self.is_occupied(x_new, y_new):
+            self.place_monomer(monomer, x_new, y_new)
+            self.remove_monomer(x_old, y_old)
+            monomer.set_position(x_new, y_new)
+        else:
+            pass
 
     def get_neighbours(self, x, y):
         if self.rotational_symmetry == 4:
