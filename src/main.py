@@ -15,7 +15,7 @@ def main():
 
     # Step 2: Place the monomers at initial positions
     lattice.place_monomer(monomer_1, 2, 2)
-    lattice.place_monomer(monomer_2, 3, 2)
+    lattice.place_monomer(monomer_2, 4, 2)
 
     # Step 3: Call the plot_simulation function to visualize the diffusion
     plot_simulation(lattice, monomers)

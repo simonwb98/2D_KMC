@@ -2,6 +2,8 @@
 
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+from matplotlib.patches import RegularPolygon
+import math
 
 def update_hexagonal_grid(lattice, monomers, ax):
     """
@@ -22,11 +24,24 @@ def update_hexagonal_grid(lattice, monomers, ax):
 
     # Plot the monomers' positions
     for monomer in monomers:
-        monomer_x, monomer_y = monomer.position
-        if monomer_y % 2 != 0:
-            monomer_x += 0.5  # Apply offset for odd rows
+        x_mon, y_mon = monomer.position
+        if y_mon % 2 != 0:
+            x_mon += 0.5  # Apply offset for odd rows
 
-        ax.add_patch(plt.Circle((monomer_x, monomer_y), 0.3, facecolor = 'red', edgecolor='black', lw=2))
+        orientation = monomer.get_orientation()
+
+        color = "blue" if monomer.coupled else "red"
+        triangle = RegularPolygon(
+            (x_mon, y_mon),
+            numVertices=3,
+            radius=0.3,
+            orientation=math.radians(orientation),
+            facecolor=color,
+            edgecolor="black",
+            lw=2
+        )
+        
+        ax.add_patch(triangle)
 
     ax.set_xlim(-0.5, lattice.width)
     ax.set_ylim(-0.5, lattice.height)
@@ -48,7 +63,7 @@ def plot_simulation(lattice, monomers):
     fig, ax = plt.subplots()
 
     # Use FuncAnimation to animate the diffusion process
-    ani = animation.FuncAnimation(fig, run_actions, fargs=(lattice, monomers, ax), interval=10, save_count=100)
+    ani = animation.FuncAnimation(fig, run_actions, fargs=(lattice, monomers, ax), interval=50, save_count=100)
 
     # Show the live plot
     plt.show()
