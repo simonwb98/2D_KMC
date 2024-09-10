@@ -11,17 +11,24 @@ class Monomer:
         self.rotation_rate = rotation_rate
         self.rotation_energy = rotation_energy
         self.coupling_rate = coupling_rate
-        self.energy = coupling_energy
+        self.coupling_energy = coupling_energy
         self.coupled = False
         self.position = None
         self.orientations = orientations
         self.orientation = random.choice(orientations)
+        print(f"Initialized Monomer with orientation: {self.orientation}.")
 
     def set_position(self, x, y):
         self.position = (x, y)
 
     def get_position(self):
         return self.position
+    
+    def get_orientation(self):
+        return self.orientation
+    
+    def set_orientation(self, orientation):
+        self.orientation = orientation
     
     def diffusion_probability(self, lattice):
         temperature = lattice.temperature
@@ -35,11 +42,15 @@ class Monomer:
         temperature = lattice.temperature
         return self.coupling_rate * math.exp(-self.coupling_energy / k_B * temperature) if not self.coupled else 0
     
+    def couple_with(self, other):
+        self.coupled = True
+        other.coupled = True
+    
     def diffuse(self, lattice):
         diffusion_prob = self.diffusion_probability(lattice)
-        neighbours = lattice.get_neighbours(*self.get_position())
-
+        
         if random.random() < diffusion_prob:
+            neighbours = lattice.get_neighbours(*self.get_position())
             x_new, y_new = random.choice(neighbours)
             lattice.move_monomer(self, x_new, y_new)
 
@@ -47,8 +58,22 @@ class Monomer:
         rotation_prob = self.rotation_probability(lattice)
 
         if random.random() < rotation_prob:
-            new_orientation = random.choice([o for o in self.orientations if not o == self.orientation])
-
+            self.set_orientation(random.choice([o for o in self.orientations if not o == self.orientation]))
 
     def couple(self, lattice):
         coupling_prob = self.coupling_probability(lattice)
+
+        if random.random() < coupling_prob:
+            neighbours = lattice.get_neighbours(*self.get_position()) # this could potentially be made faster sometime down the line
+            neighbouring_monomers = [lattice.grid[ny][nx] for (nx, ny) in neighbours if not lattice.grid[ny][nx] == None and lattice.grid[ny][nx].get_orientation() != self.get_orientation()]
+
+            if neighbouring_monomers:
+                self.couple_with(random.choice(neighbouring_monomers))
+            
+    def action(self, lattice):
+        '''
+        Runs all actions a monomer can perform in succession. The order was chosen arbitrary. Not sure if there is a right order here. 
+        '''
+        self.diffuse(lattice)
+        self.rotate(lattice)
+        self.couple(lattice)

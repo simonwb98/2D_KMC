@@ -35,10 +35,10 @@ def update_hexagonal_grid(lattice, monomers, ax):
     ax.set_xticks([])
     ax.set_yticks([])
 
-def run_diffusion(frame, lattice, monomers, ax):
+def run_actions(frame, lattice, monomers, ax):
     """Perform diffusion and update the hexagonal plot."""
     for monomer in monomers:
-        monomer.diffuse(lattice)
+        monomer.action(lattice)
     update_hexagonal_grid(lattice, monomers, ax)
 
 def plot_simulation(lattice, monomers):
@@ -48,7 +48,7 @@ def plot_simulation(lattice, monomers):
     fig, ax = plt.subplots()
 
     # Use FuncAnimation to animate the diffusion process
-    ani = animation.FuncAnimation(fig, run_diffusion, fargs=(lattice, monomers, ax), interval=100, save_count=100)
+    ani = animation.FuncAnimation(fig, run_actions, fargs=(lattice, monomers, ax), interval=10, save_count=100)
 
     # Show the live plot
     plt.show()
