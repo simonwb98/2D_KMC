@@ -2,23 +2,22 @@
 
 from lattice import Lattice
 from monomer import Monomer
-from plotter import plot_simulation
+from plotter import plot_simulation, plot_final_state
 
 def main():
-    # Step 1: Initialize the lattice and monomers
-    width = 5
+    # Initialize lattice and monomers
+    width = 20 # only even numbers
+    monomer_params = ['A', 1.0, 0.01, 0, 0, 1, 0]
+
     lattice = Lattice(width=width, rotational_symmetry=6, periodic=True)
-    monomer_1 = Monomer(monomer_type='A', diffusion_rate=1.0, diffusion_energy=0.01, rotation_rate=0, rotation_energy=0, coupling_rate=1, coupling_energy=0)
-    monomer_2 = Monomer(monomer_type='B', diffusion_rate=1.0, diffusion_energy=0.03, rotation_rate=0, rotation_energy=0, coupling_rate=1, coupling_energy=0)
+    monomers = [Monomer(*monomer_params) for _ in range(50)]
 
-    monomers = [monomer_1, monomer_2]
+    # place the monomers at initial positions
+    lattice.randomly_place_monomers(monomers)
 
-    # Step 2: Place the monomers at initial positions
-    lattice.place_monomer(monomer_1, 2, 2)
-    lattice.place_monomer(monomer_2, 4, 2)
+    # call the plot_simulation function to visualize the diffusion
+    plot_simulation(lattice, monomers, max_steps = 100)
 
-    # Step 3: Call the plot_simulation function to visualize the diffusion
-    plot_simulation(lattice, monomers)
 
 if __name__ == "__main__":
     main()

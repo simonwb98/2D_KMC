@@ -34,7 +34,7 @@ def update_hexagonal_grid(lattice, monomers, ax):
         triangle = RegularPolygon(
             (x_mon, y_mon),
             numVertices=3,
-            radius=0.3,
+            radius=0.6,
             orientation=math.radians(orientation),
             facecolor=color,
             edgecolor="black",
@@ -50,20 +50,41 @@ def update_hexagonal_grid(lattice, monomers, ax):
     ax.set_xticks([])
     ax.set_yticks([])
 
-def run_actions(frame, lattice, monomers, ax):
+def run_actions(lattice, monomers):
     """Perform diffusion and update the hexagonal plot."""
     for monomer in monomers:
         monomer.action(lattice)
-    update_hexagonal_grid(lattice, monomers, ax)
 
-def plot_simulation(lattice, monomers):
+def all_monomers_coupled(monomers):
+    # stopping condition when all monomers have coupled together
+    return all(monomer.coupled for monomer in monomers)
+
+def plot_simulation(lattice, monomers, max_steps=1000, animation=False):
     """
     Sets up the plot and runs the animation based on the current state of the simulation.
     """
+    steps = 0
+    while steps < max_steps:
+        run_actions(lattice, monomers)
+
+        if all_monomers_coupled(monomers):
+            print(f"Termination condition reached after {steps + 1} steps.")
+            break
+
+        steps += 1
+
+    if animation:
+        fig, ax = plt.subplots()
+
+        # Use FuncAnimation to animate the diffusion process
+        ani = animation.FuncAnimation(fig, run_actions, fargs=(lattice, monomers, ax), interval=10, frames = 20, save_count=10)
+
+        # Show the live plot
+        plt.show()
+    else:
+        plot_final_state(lattice, monomers)
+
+def plot_final_state(lattice, monomers):
     fig, ax = plt.subplots()
-
-    # Use FuncAnimation to animate the diffusion process
-    ani = animation.FuncAnimation(fig, run_actions, fargs=(lattice, monomers, ax), interval=50, save_count=100)
-
-    # Show the live plot
+    update_hexagonal_grid(lattice, monomers, ax)
     plt.show()

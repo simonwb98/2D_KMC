@@ -1,4 +1,5 @@
 # src/lattice.py
+import random
 
 class Lattice:
     def __init__(self, width, rotational_symmetry, periodic = False, temperature = 300):
@@ -102,6 +103,16 @@ class Lattice:
             monomer.set_position(x, y)
         else:
             pass
+
+    def randomly_place_monomers(self, monomers):
+        for monomer in monomers:
+            unoccupied = [(x, y) for (x, y) in self.lattice_coord if not self.is_occupied(x, y)]
+
+            if unoccupied:
+                (x, y) = random.choice(unoccupied)
+                monomer.set_position(x, y)
+                self.grid[y][x] = monomer
+            
         
 
     def remove_monomer(self, x, y):
@@ -130,3 +141,21 @@ class Lattice:
         neighbours = list(map(lambda coord: self.wrap_coordinates(*coord), neighbours))
         return neighbours
         
+    def get_next_nearest_neighbours(self, x, y, orientation):
+        # for now only 6-fold rotational symmetry
+        if self.rotational_symmetry == 6:
+            if orientation == 180:
+                if y % 2 == 0:
+                    next_nearest = [(x, y - 2), (x + 1, y + 1), (x - 2, y + 1)]
+                else:
+                    next_nearest = [(x, y - 2), (x + 2, y + 1), (x - 1, y + 1)]
+            elif orientation == 0:
+                if y % 2 == 0:
+                    next_nearest = [(x - 2, y - 1), (x + 1, y - 1), (x, y + 2)]
+                else:
+                    next_nearest = [(x - 1, y - 1), (x + 2, y - 1), (x, y + 2)]
+        else:
+            raise NotImplementedError("Next nearest neighbour is restricted to 6-fold rotational symmetries (for now).")
+        
+        next_nearest = list(map(lambda coord: self.wrap_coordinates(*coord), next_nearest))
+        return next_nearest

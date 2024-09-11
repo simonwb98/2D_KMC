@@ -16,7 +16,6 @@ class Monomer:
         self.position = None
         self.orientations = orientations
         self.orientation = random.choice(orientations)
-        print(f"Initialized Monomer with orientation: {self.orientation}.")
 
     def set_position(self, x, y):
         self.position = (x, y)
@@ -45,6 +44,7 @@ class Monomer:
     def couple_with(self, other):
         self.coupled = True
         other.coupled = True
+
     
     def diffuse(self, lattice):
         diffusion_prob = self.diffusion_probability(lattice)
@@ -64,11 +64,20 @@ class Monomer:
         coupling_prob = self.coupling_probability(lattice)
 
         if random.random() < coupling_prob:
-            neighbours = lattice.get_neighbours(*self.get_position()) # this could potentially be made faster sometime down the line
-            neighbouring_monomers = [lattice.grid[ny][nx] for (nx, ny) in neighbours if not lattice.grid[ny][nx] == None and lattice.grid[ny][nx].get_orientation() != self.get_orientation()]
+            neighbours = lattice.get_neighbours(*self.get_position())
+            if any(lattice.is_occupied(nx, ny) for (nx, ny) in neighbours):
+                return # disallow coupling when there are nearest neighbours to this monomer
+            next_neighbours = lattice.get_next_nearest_neighbours(*self.get_position(), self.get_orientation()) # this could potentially be made faster sometime down the line
+            neighbouring_monomers = [lattice.grid[ny][nx] for (nx, ny) in next_neighbours if not lattice.grid[ny][nx] == None and lattice.grid[ny][nx].get_orientation() != self.get_orientation()]
 
             if neighbouring_monomers:
-                self.couple_with(random.choice(neighbouring_monomers))
+                partner = random.choice(neighbouring_monomers)
+                partner_neighbours = lattice.get_neighbours(*partner.get_position())
+
+                if any(lattice.is_occupied(nx, ny) for (nx, ny) in partner_neighbours):
+                    return
+
+                self.couple_with(partner)
             
     def action(self, lattice):
         '''
