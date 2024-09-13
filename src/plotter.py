@@ -2,7 +2,7 @@
 
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-from matplotlib.patches import RegularPolygon
+from matplotlib.patches import RegularPolygon, Circle
 import math
 
 def update_hexagonal_grid(lattice, monomers, ax):
@@ -15,18 +15,14 @@ def update_hexagonal_grid(lattice, monomers, ax):
     # Loop through all valid lattice coordinates and plot circles at each point
     for (x, y) in lattice.lattice_coord:
         # Adjust x-position to create the staggered hexagonal effect
-        if y % 2 != 0:
-            x_offset = x + 0.5
-        else:
-            x_offset = x
+        x_offset = x + 0.5 if y % 2 != 0 else x
 
         ax.add_patch(plt.Circle((x_offset, y), 0.3, facecolor='lightgray', edgecolor='black', lw=1))
 
     # Plot the monomers' positions
     for monomer in monomers:
         x_mon, y_mon = monomer.position
-        if y_mon % 2 != 0:
-            x_mon += 0.5  # Apply offset for odd rows
+        x_mon = x_mon + 0.5 if y_mon % 2 != 0 else x_mon
 
         orientation = monomer.get_orientation()
 
@@ -55,11 +51,15 @@ def run_actions(lattice, monomers):
     for monomer in monomers:
         monomer.action(lattice)
 
+def update_plot(frame, lattice, monomers, ax):
+    run_actions(lattice, monomers)
+    update_hexagonal_grid(lattice, monomers, ax)
+
 def all_monomers_coupled(monomers):
     # stopping condition when all monomers have coupled together
     return all(monomer.coupled for monomer in monomers)
 
-def plot_simulation(lattice, monomers, max_steps=1000, animation=False):
+def plot_simulation(lattice, monomers, max_steps=1000, animate=False):
     """
     Sets up the plot and runs the animation based on the current state of the simulation.
     """
@@ -73,11 +73,11 @@ def plot_simulation(lattice, monomers, max_steps=1000, animation=False):
 
         steps += 1
 
-    if animation:
+    if animate:
         fig, ax = plt.subplots()
 
         # Use FuncAnimation to animate the diffusion process
-        ani = animation.FuncAnimation(fig, run_actions, fargs=(lattice, monomers, ax), interval=10, frames = 20, save_count=10)
+        ani = animation.FuncAnimation(fig, update_plot, fargs=(lattice, monomers, ax), interval=10, frames = 20) #  blit=True
 
         # Show the live plot
         plt.show()
