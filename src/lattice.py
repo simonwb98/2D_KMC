@@ -51,7 +51,6 @@ class Lattice:
             raise KeyError(f"Coordinates ({x}, {y}) not found in lattice with lattice sites: {self.lattice_coord}\n")
         return True
         
-    
     def wrap_coordinates(self, x, y):
         '''
         This might be moved into an auxiliary file of helper functions later on. 
@@ -92,7 +91,6 @@ class Lattice:
     
     def is_occupied(self, x, y):
         return self.grid[y][x] is not None
-
              
     def place_monomer(self, monomer, x, y):
         # first, check if coordinates are properly wrapped

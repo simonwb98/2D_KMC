@@ -45,7 +45,6 @@ class Monomer:
         self.coupled = True
         other.coupled = True
 
-    
     def diffuse(self, lattice):
         diffusion_prob = self.diffusion_probability(lattice)
         
