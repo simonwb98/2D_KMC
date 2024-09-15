@@ -2,20 +2,21 @@
 
 from lattice import Lattice
 from monomer import Monomer
-from plotter import plot_simulation, plot_final_state
+from plotter import plot_simulation, plot_final_state, plot_analysis_results
+from analysis import analyze_structure
 import random
 
 def main():
     # Initialize lattice and monomers
     width = 100 # only even numbers
 
-    monomer_params = ['A', 1.0, 0.05, 1.0, 0.01, 1, 0] 
+    monomer_params = ['A', 1.0, 0.00, 1.0, 0.01, 1, 0.000001] 
     # monomer_type, diffusion_rate, diffusion_energy, rotation_rate, rotation_energy, coupling_rate, coupling_energy
 
     lattice = Lattice(width=width, rotational_symmetry=6, periodic=True)
     # monomers = [Monomer(*monomer_params) for _ in range(50)]
 
-    slow_growth_simulation(lattice, monomer_params, total_monomers=100)
+    slow_growth_simulation(lattice, monomer_params, total_monomers=300, max_steps=1e5)
 
     # place the monomers at initial positions
     # lattice.randomly_place_monomers(monomers)
@@ -68,7 +69,9 @@ def slow_growth_simulation(lattice, monomer_params, total_monomers, max_steps=1e
 
     print("Growth simulation completed.")
 
-    plot_final_state(lattice, monomers)
+    neighbour_freq, radius, radius_of_gyration = analyze_structure(lattice, monomers)
+
+    plot_analysis_results(neighbour_freq, radius, lattice, monomers)
 
 if __name__ == "__main__":
     main()

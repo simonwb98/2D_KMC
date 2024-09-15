@@ -88,3 +88,66 @@ def plot_final_state(lattice, monomers):
     fig, ax = plt.subplots()
     update_hexagonal_grid(lattice, monomers, ax)
     plt.show()
+
+def plot_analysis_results(neighbor_frequencies, effective_radius, lattice, monomers):
+    """Plot the polymer structure with the radius of gyration and the histogram of coupled neighbors."""
+    
+    fig, ax = plt.subplots(1, 2, figsize=(14, 7))  # Two plots side by side
+
+    # 1. Plot the polymer structure with the radius of gyration on the first axis
+    ax[0].clear()
+    
+    # Loop through all valid lattice coordinates and plot circles at each point
+    for (x, y) in lattice.lattice_coord:
+        x_offset = x + 0.5 if y % 2 == 0 else x  # Adjust for hexagonal staggered rows
+        ax[0].add_patch(plt.Circle((x_offset, y), 0.3, facecolor='lightgray', edgecolor='black', lw=1))
+
+    # Plot the monomers' positions
+    for monomer in monomers:
+        x_mon, y_mon = monomer.position
+        if y_mon % 2 != 0:
+            x_mon += 0.5  # Apply offset for odd rows
+
+        orientation = monomer.get_orientation()
+        color = "blue" if monomer.coupled else "red"
+        triangle = RegularPolygon(
+            (x_mon, y_mon),
+            numVertices=3,
+            radius=0.6,
+            orientation=math.radians(orientation),
+            facecolor=color,
+            edgecolor="black",
+            lw=2
+        )
+        ax[0].add_patch(triangle)
+
+    # Calculate the center of mass for the polymer
+    x_positions = [monomer.position[0] for monomer in monomers]
+    y_positions = [monomer.position[1] for monomer in monomers]
+    
+    x_center_of_mass = sum(x_positions) / len(x_positions)
+    y_center_of_mass = sum(y_positions) / len(y_positions)
+
+    # Add the circle representing the radius of gyration
+    circle = Circle((x_center_of_mass, y_center_of_mass), effective_radius, fill=False, color='green', lw=2, linestyle='--')
+    ax[0].add_patch(circle)
+    
+    ax[0].set_title('Polymer Structure with Radius of Gyration')
+    ax[0].set_xlim(-0.5, lattice.width)
+    ax[0].set_ylim(-0.5, lattice.height)
+    ax[0].set_aspect('equal')
+    ax[0].grid(False)
+    ax[0].set_xticks([])
+    ax[0].set_yticks([])
+
+    # 2. Plot the histogram of neighbor frequencies on the second axis
+    labels = sorted(neighbor_frequencies.keys())
+    counts = [neighbor_frequencies[label] for label in labels]
+    
+    ax[1].bar(labels, counts, color='blue', edgecolor='black')
+    ax[1].set_title('Histogram of Coupled Neighbors')
+    ax[1].set_xlabel('Number of Coupled Neighbors')
+    ax[1].set_ylabel('Monomer Count')
+
+    plt.tight_layout()
+    plt.show()
