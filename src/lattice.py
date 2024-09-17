@@ -18,32 +18,12 @@ class Lattice:
         '''
         Define the grid of the lattice. This does not (yet) include nucleation sites or the spacing between atoms.
         '''
-        if self.rotational_symmetry == 4:
-            self.grid, self.lattice_coord = self.generate_square_grid()
-        elif self.rotational_symmetry == 6:
-            self.grid, self.lattice_coord = self.generate_hex_grid()
-        else:
-            raise ValueError(f"Rotational symmetry {self.rotational_symmetry} not supported. Please check input.")
-        
+        self.grid, self.lattice_coord = self.generate_grid()
         self.lattice_coord = set(self.lattice_coord)
 
-    def generate_square_grid(self):
+    def generate_grid(self):
         grid = [[None for i in range(self.width)] for i in range(self.height)]
         lattice_coord = [(i, j) for i in range(self.width) for j in range(self.height)]
-        return grid, lattice_coord
-    
-    def generate_hex_grid(self):
-        grid = []
-        lattice_coord = []
-        for j in range(self.height):
-            if j % 2 == 0: # offset every second row
-               row = [None]*self.width
-               row_coord = [(i, j) for i in range(self.width)]
-            else:
-                row = [None]*(self.width - 1)
-                row_coord = [(i, j) for i in range(self.width - 1)]
-            grid.append(row)
-            lattice_coord.extend(row_coord)
         return grid, lattice_coord
     
     def is_member(self, x, y):
