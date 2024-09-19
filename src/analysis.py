@@ -24,17 +24,17 @@ def analyze_structure(lattice, monomers):
 def calculate_effective_radius(lattice, monomers):
     """Calculate the effective radius (radius of gyration) of the resulting structure."""
     
-    # 1. Calculate the center of mass
+    # calculate the center of mass
     x_positions = np.array([monomer.position[0] for monomer in monomers])
     y_positions = np.array([monomer.position[1] for monomer in monomers])
     
     x_center_of_mass = np.mean(x_positions)
     y_center_of_mass = np.mean(y_positions)
     
-    # 2. Calculate the squared distances from the center of mass
+    # calculate the squared distances from the center of mass
     squared_distances = (x_positions - x_center_of_mass)**2 + (y_positions - y_center_of_mass)**2
     
-    # 3. Compute the radius of gyration (effective radius)
+    # compute the radius of gyration (effective radius)
     radius = np.sqrt(np.mean(squared_distances))
     radius_of_gyration = radius/np.sqrt(len(monomers))
     

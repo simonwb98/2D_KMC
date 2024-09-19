@@ -1,5 +1,11 @@
 # src/polymer.py
 
+"""
+I thought this class might be useful to define since we at some point want to have several islands grow at the same time.
+It's not realized yet, but once monomers couple, they could be removed as monomer objects from the lattice and replaced by a single polymer object that just keeps adding monomers.
+I'm assuming it would reduce the complexity of the system somewhat...
+"""
+
 class Polymer:
     def __init__(self, monomers):
         self.monomers = monomers

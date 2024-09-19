@@ -30,8 +30,11 @@ class Monomer:
         self.orientation = orientation
     
     def diffusion_probability(self, lattice):
+        '''
+        You could modify this to be a property of the lattice class and then implement your matrix model :)
+        '''
         temperature = lattice.temperature
-        return self.diffusion_rate * math.exp(-self.diffusion_energy / (k_B * temperature)) if not self.coupled else 0 # for two or more monomers, the diffusion probability is (for now) set to 0.
+        return self.diffusion_rate * math.exp(-self.diffusion_energy / (k_B * temperature)) if not self.coupled else 0 # for two or more coupled monomers, the diffusion probability is (for now) set to 0.
     
     def rotation_probability(self, lattice):
         temperature = lattice.temperature
@@ -46,9 +49,9 @@ class Monomer:
         other.coupled = True
 
     def diffuse(self, lattice):
-        diffusion_prob = self.diffusion_probability(lattice)
+        diffusion_prob = self.diffusion_probability(lattice) # get probability
         
-        if random.random() < diffusion_prob:
+        if random.random() < diffusion_prob: # based on the probability, decide if diffuse or not
             neighbours = lattice.get_neighbours(*self.get_position())
             x_new, y_new = random.choice(neighbours)
             lattice.move_monomer(self, x_new, y_new)
@@ -65,7 +68,7 @@ class Monomer:
         if random.random() < coupling_prob:
             neighbours = lattice.get_neighbours(*self.get_position())
             if any(lattice.is_occupied(nx, ny) for (nx, ny) in neighbours):
-                return # disallow coupling when there are nearest neighbours to this monomer
+                return # disallow coupling when there are nearest neighbours to this monomer. This condition basically realizes the fact that monomers physically restrict each other (geometric hindrance) - a cleaner way of doing this is to disallow diffusion into sites that have monomers that are nearest neighbours, but this is fine also.
             next_neighbours = lattice.get_next_nearest_neighbours(*self.get_position(), self.get_orientation()) # this could potentially be made faster sometime down the line
             neighbouring_monomers = [lattice.grid[ny][nx] for (nx, ny) in next_neighbours if not lattice.grid[ny][nx] == None and lattice.grid[ny][nx].get_orientation() != self.get_orientation()]
 
@@ -80,7 +83,7 @@ class Monomer:
             
     def action(self, lattice):
         '''
-        Runs all actions a monomer can perform in succession. The order was chosen arbitrary. Not sure if there is a right order here. 
+        Runs all actions a monomer can perform in succession.
         '''
         self.diffuse(lattice)
         self.rotate(lattice)
