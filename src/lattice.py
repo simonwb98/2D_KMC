@@ -52,8 +52,8 @@ class Lattice:
                         x = 0
                 else:  
                     if x < 0:  # wrap horizontally on odd rows (left to right)
-                        x = self.width - 2
-                    elif x >= self.width - 1:  # right to left
+                        x = self.width - 1
+                    elif x >= self.width:  # right to left
                         x = 0
         elif self.periodic and self.rotational_symmetry == 4:
             if y < 0:

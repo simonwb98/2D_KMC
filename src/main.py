@@ -8,7 +8,7 @@ import random
 
 def main():
     # Initialize lattice and monomers
-    width = 100 # only even numbers
+    width = 15 # only even numbers
 
     monomer_params = ['A', 1.0, 0.00, 1.0, 0.01, 1, 0.000000] 
     # monomer_type, diffusion_rate, diffusion_energy, rotation_rate, rotation_energy, coupling_rate, coupling_energy
@@ -16,7 +16,7 @@ def main():
     lattice = Lattice(width=width, rotational_symmetry=6, periodic=True)
     # monomers = [Monomer(*monomer_params) for _ in range(50)]
 
-    slow_growth_simulation(lattice, monomer_params, total_monomers=300, max_steps=1e5)
+    slow_growth_simulation(lattice, monomer_params, total_monomers=20, max_steps=1e5)
 
     # place the monomers at initial positions
     # lattice.randomly_place_monomers(monomers)

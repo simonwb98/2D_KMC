@@ -99,7 +99,7 @@ def plot_analysis_results(neighbor_frequencies, effective_radius, lattice, monom
     
     # Loop through all valid lattice coordinates and plot circles at each point
     for (x, y) in lattice.lattice_coord:
-        x_offset = x + 0.5 if y % 2 == 0 else x  # Adjust for hexagonal staggered rows
+        x_offset = x + 0.5 if y % 2 != 0 else x  # Adjust for hexagonal staggered rows
         ax[0].add_patch(plt.Circle((x_offset, y), 0.3, facecolor='lightgray', edgecolor='black', lw=1))
 
     # Plot the monomers' positions
@@ -113,7 +113,7 @@ def plot_analysis_results(neighbor_frequencies, effective_radius, lattice, monom
         triangle = RegularPolygon(
             (x_mon, y_mon),
             numVertices=3,
-            radius=0.6,
+            radius=0.7,
             orientation=math.radians(orientation),
             facecolor=color,
             edgecolor="black",
