@@ -1,16 +1,19 @@
 # src/lattice.py
 import random
+import numpy as np
 
 class Lattice:
-    def __init__(self, width, rotational_symmetry, periodic = False, temperature = 300):
+    def __init__(self, width, rotational_symmetry, wall_params=[(0,0), 0, 0], periodic = False, temperature = 300):
         self.width = width
         self.height = width
         self.rotational_symmetry = rotational_symmetry
+        self.wall_params = wall_params
         self.periodic = periodic
         self.grid = None # will be defined below
         self.lattice_coord = []
         self.temperature = temperature # in K
         self.substrate_properties = {}
+        
 
         self.define_grid()
 
@@ -23,9 +26,23 @@ class Lattice:
 
     def generate_grid(self):
         grid = [[None for i in range(self.width)] for i in range(self.height)]
+#        defects = np.random.choice([0,1], (self.width, self.height,), p = [1-self.defect_prob, self.defect_prob])
+        
+        
         lattice_coord = [(i, j) for i in range(self.width) for j in range(self.height)]
         return grid, lattice_coord
     
+    def build_wall(self):
+        m_default = np.zeros((self.width, self.height))
+        x_vals = np.arange(self.width)
+        y_vals = np.around(self.wall_params[1]*(xvals - self.wall_params[0][0]) + \
+                 self.wall_params[2] + self.wall_params[0][1]).astype(int)
+        
+        for i in range(len(x_vals)):
+            if y_vals[i] <= self.height-1:
+                m_default[y_vals[i],x_vals[i]] = 2
+                m_default[y_vals[i+1],x_vals[i]] = 2
+                
     def is_member(self, x, y):
         if (x, y) not in self.lattice_coord:
             raise KeyError(f"Coordinates ({x}, {y}) not found in lattice with lattice sites: {self.lattice_coord}\n")
@@ -91,7 +108,7 @@ class Lattice:
                 monomer.set_position(x, y)
                 self.grid[y][x] = monomer
             
-        
+    
 
     def remove_monomer(self, x, y):
         if self.is_occupied(x, y):
@@ -137,3 +154,4 @@ class Lattice:
         
         next_nearest = list(map(lambda coord: self.wrap_coordinates(*coord), next_nearest))
         return next_nearest
+    

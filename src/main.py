@@ -2,6 +2,7 @@
 
 from lattice import Lattice
 from monomer import Monomer
+from defect import Defect
 from plotter import plot_simulation, plot_final_state, plot_analysis_results
 from analysis import analyze_structure
 import random
@@ -69,17 +70,32 @@ def introduce_new_monomer(lattice, new_monomer, monomers, max_steps=1e5):
         lattice.remove_monomer(x, y)
         print(f"Monomer failed to couple after {max_steps} steps. Initializing new monomer...")
 
-def slow_growth_simulation(lattice, monomer_params, total_monomers, max_steps=1e5):
+
+def create_defects(defect_density, lattice, defect_params):
+    num_defects = round(defect_density*lattice.width**2)
+    defects = [Defect(*defect_params)]*num_defects    
+    return defects
+
+
+# Gotta change this function a bit
+def slow_growth_simulation(lattice, monomer_params, defect_params, defect_density, total_monomers, max_steps=1e5):
     '''
     What I call slow_growth here is what I had explained in our meeting, where the density of monomers is so low that 
     it is physically accurate to model only a single monomer at a time until it coupled to the growing island. Only after 
     the monomer has coupled is the next one introduced.
     '''
+    
+    # Change the initialization of the dimer to a normal introduction of one monomer and allow it to nucleate at some point
     monomer_1, monomer_2 = initialize_dimer(lattice, monomer_params)
     monomers = [monomer_1, monomer_2]
-
+    
+    defects = create_defects(defect_density, lattice, defect_params)
+    lattice.randomly_place_monomers(defects)
+    
     for i in range(2, total_monomers):
-        new_monomer = Monomer(*monomer_params)
+        new_monomer = Monomer(*monomer_params) # Constructing a monomer here is fine, but
+                                               # we might want to input the lattice into the monomer as a matrix of probabilities
+                                               
         lattice.randomly_place_monomers([new_monomer]) # initialize monomer with random position (note that this can also be inside the island on an unoccupied site)
         introduce_new_monomer(lattice, new_monomer, monomers, max_steps)
         
