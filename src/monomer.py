@@ -52,7 +52,7 @@ class Monomer:
     def diffuse(self, lattice):
         diffusion_prob = self.diffusion_probability(lattice) # get probability
         
-        if random.random() < diffusion_prob and not nucleating: # based on the probability, decide if diffuse or not
+        if random.random() < diffusion_prob and not self.nucleating: # based on the probability, decide if diffuse or not
             neighbours = lattice.get_neighbours(*self.get_position())
             x_new, y_new = random.choice(neighbours)
             lattice.move_monomer(self, x_new, y_new)
@@ -71,9 +71,8 @@ class Monomer:
             if any(lattice.is_occupied(nx, ny) for (nx, ny) in neighbours):
                 return # disallow coupling when there are nearest neighbours to this monomer. This condition basically realizes the fact that monomers physically restrict each other (geometric hindrance) - a cleaner way of doing this is to disallow diffusion into sites that have monomers that are nearest neighbours, but this is fine also.
             next_neighbours = lattice.get_next_nearest_neighbours(*self.get_position(), self.get_orientation()) # this could potentially be made faster sometime down the line
-            neighbouring_monomers = [lattice.grid[ny][nx] for (nx, ny) in next_neighbours if not lattice.grid[ny][nx] == None and lattice.grid[ny][nx].get_orientation() != self.get_orientation()]
-            neighboring_defects = [lattice.grid[ny][nx] for (nx, ny) in next_neighbours if isinstance(lattice.grid[ny][nx], Defect)]
-
+            neighbouring_monomers = [lattice.grid[ny][nx] for (nx, ny) in next_neighbours if not lattice.grid[ny][nx] == None and ((lattice.grid[ny][nx].get_orientation() != self.get_orientation()) and not isinstance(lattice.grid[ny][nx], Defect))]
+            neighboring_defects = [lattice.grid[ny][nx] for (nx, ny) in next_neighbours if not lattice.grid[ny][nx] == None and isinstance(lattice.grid[ny][nx], Defect)]
             if neighbouring_monomers:
                 
                 partner = random.choice(neighbouring_monomers)
@@ -87,13 +86,18 @@ class Monomer:
             
             if neighboring_defects:
                 choice = random.choice(neighboring_defects)
+                
+                if lattice.has_monomer(*choice.get_position()):
+                    print('happened')
+                    return
+                new_x, new_y = choice.get_position()
+                self.set_position(new_x, new_y)
                 self.nucleating = True
                 choice.nucleating = True
+                return 
+                print('worked')            
                 
                 
-                
-                
-            
     def action(self, lattice):
         '''
         Runs all actions a monomer can perform in succession.

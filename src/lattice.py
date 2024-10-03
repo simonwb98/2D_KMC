@@ -1,6 +1,7 @@
 # src/lattice.py
 import random
 import numpy as np
+from monomer import Monomer
 
 class Lattice:
     def __init__(self, width, rotational_symmetry, wall_params=[(0,0), 0, 0], periodic = False, temperature = 300):
@@ -88,6 +89,10 @@ class Lattice:
     
     def is_occupied(self, x, y):
         return self.grid[y][x] is not None
+    
+    def has_monomer(self, x, y):
+        return isinstance(self.grid[y][x], Monomer)
+    
              
     def place_monomer(self, monomer, x, y):
         # first, check if coordinates are properly wrapped
