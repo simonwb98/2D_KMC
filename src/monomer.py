@@ -49,12 +49,49 @@ class Monomer:
         other.coupled = True
 
     def diffuse(self, lattice):
-        diffusion_prob = self.diffusion_probability(lattice) # get probability
+        diffusion_prob = self.diffusion_probability(lattice) # get probability of moving
+        # the try block is in case no walls are built
+        try:
+            grid = lattice.wall_grid
+            divisor = lattice.rotational_symmetry
+            site1 = lattice.wall_params[2]
+            
+            i, j = self.get_position()
+            if grid[j][i] == 1:
+                neighbours_grid = lattice.get_neighbours_with_wall(*self.get_position())[0] # get the coords of neighbours
+                neighbours_wall = lattice.get_neighbours_with_wall(*self.get_position())[1] # get the strengths of neighbouring cells
+                num_twos = neighbours_wall.count(2)
+                num_other = divisor - num_twos
+                index_twos = [i for i, x in enumerate(neighbours_wall) if x == 2]
+                index_other = [i for i, x in enumerate(neighbours_wall) if (x != 2)]
+                p_over_wall = num_twos*site1*diffusion_prob/divisor
+                p_move = num_other*diffusion_prob/divisor
+                if random.random() < p_over_wall:
+                    landing_spots = []
+                    for index in index_twos:
+                        landing_spots.append(neighbours_grid[index])
+                    x_new, y_new = random.choice(landing_spots)
+                    lattice.move_monomer(self, x_new, y_new)
+
+                elif random.random() < p_move:
+                    landing_spots = []
+                    for index in index_other:
+                        landing_spots.append(neighbours_grid[index])
+                    x_new, y_new = random.choice(landing_spots)
+                    lattice.move_monomer(self, x_new, y_new)
+            else:
+                if random.random() < diffusion_prob: # based on the probability, decide if diffuse or not
+                    neighbours = lattice.get_neighbours(*self.get_position())
+                    x_new, y_new = random.choice(neighbours)
+                    lattice.move_monomer(self, x_new, y_new)        
+            
         
-        if random.random() < diffusion_prob: # based on the probability, decide if diffuse or not
-            neighbours = lattice.get_neighbours(*self.get_position())
-            x_new, y_new = random.choice(neighbours)
-            lattice.move_monomer(self, x_new, y_new)
+        except AttributeError:
+            if random.random() < diffusion_prob: # based on the probability, decide if diffuse or not
+                neighbours = lattice.get_neighbours(*self.get_position())
+                x_new, y_new = random.choice(neighbours)
+                lattice.move_monomer(self, x_new, y_new)
+            
 
     def rotate(self, lattice):
         rotation_prob = self.rotation_probability(lattice)

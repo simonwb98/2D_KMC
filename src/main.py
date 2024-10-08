@@ -13,7 +13,7 @@ def main():
     monomer_params = ['A', 1.0, 0.00, 1.0, 0.01, 1, 0.000000] 
     # monomer_type, diffusion_rate, diffusion_energy, rotation_rate, rotation_energy, coupling_rate, coupling_energy
 
-    lattice = Lattice(width=width, rotational_symmetry=6, periodic=True)
+    lattice = Lattice(width=width, rotational_symmetry=6, periodic=True, wall=["horiz", 3, 0.1])
     # monomers = [Monomer(*monomer_params) for _ in range(50)]
 
     slow_growth_simulation(lattice, monomer_params, total_monomers=20, max_steps=1e5)
