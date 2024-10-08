@@ -33,9 +33,20 @@ class Defect:
         if random.random() < diffusion_prob and not self.nucleating: # based on the probability, decide if diffuse or not
             neighbours = lattice.get_neighbours(*self.get_position())
             x_new, y_new = random.choice(neighbours)
-            lattice.move_monomer(self, x_new, y_new)
-            
+            lattice.move_defect(self, x_new, y_new)
+    
+    def attempt_nucleation(self, lattice):
+        diffusion_prob = self.diffusion_probability(lattice) # get probability
+        
+        if random.random() < diffusion_prob and not self.nucleating: # based on the probability, decide if diffuse or not
+            neighbours = lattice.get_neighbours(*self.get_position())
+            x_new, y_new = random.choice(neighbours)
+            lattice.move_defect(self, x_new, y_new)
+    
+    
+    
     def action(self, lattice):
         if not self.nucleating:
             self.diffuse(lattice)
+            #self.attempt_nucleation(lattice)
         else: pass

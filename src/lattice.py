@@ -28,7 +28,7 @@ class Lattice:
     def generate_grid(self):
         grid = [[None for i in range(self.width)] for i in range(self.height)]
 #        defects = np.random.choice([0,1], (self.width, self.height,), p = [1-self.defect_prob, self.defect_prob])
-        
+        self.dgrid = [[None for i in range(self.width)] for i in range(self.height)]
         
         lattice_coord = [(i, j) for i in range(self.width) for j in range(self.height)]
         return grid, lattice_coord
@@ -90,7 +90,12 @@ class Lattice:
     def is_occupied(self, x, y):
         return self.grid[y][x] is not None
     
+    def has_defect(self, x, y):
+        return self.dgrid[y][x] is not None
+    
     def has_monomer(self, x, y):
+        if isinstance(self.grid[y][x], list):
+            return any([isinstance(self.grid[y][x][i], Monomer) for i in len(self.grid[y][x])])
         return isinstance(self.grid[y][x], Monomer)
     
              
@@ -103,6 +108,20 @@ class Lattice:
             monomer.set_position(x, y)
         else:
             pass
+    
+    def place_defect(self, defect, x, y):
+        # first, check if coordinates are properly wrapped
+        x, y = self.wrap_coordinates(x, y)
+
+        if not self.has_defect(x, y):
+            self.dgrid[y][x] = defect
+            defect.set_position(x, y)
+        else:
+            pass
+        
+    def remove_defect(self, x, y):
+        if self.has_defect(x, y):
+            self.dgrid[y][x] = None
 
     def randomly_place_monomers(self, monomers):
         for monomer in monomers:
@@ -113,6 +132,14 @@ class Lattice:
                 monomer.set_position(x, y)
                 self.grid[y][x] = monomer
             
+    def randomly_place_defects(self, defects):
+        for defect in defects:
+            unoccupied = [(x, y) for (x, y) in self.lattice_coord if not self.has_defect(x, y)]
+
+            if unoccupied:
+                (x, y) = random.choice(unoccupied)
+                defect.set_position(x, y)
+                self.dgrid[y][x] = defect
     
 
     def remove_monomer(self, x, y):
@@ -122,10 +149,20 @@ class Lattice:
     def move_monomer(self, monomer, x_new, y_new):
         # moves monomer from old coordinates to new ones
         x_old, y_old = monomer.get_position()
-        if not self.is_occupied(x_new, y_new):
+        if not self.is_occupied(x_new, y_new) and not self.has_defect(x_new,y_new):
             self.place_monomer(monomer, x_new, y_new)
             self.remove_monomer(x_old, y_old)
             monomer.set_position(x_new, y_new)
+        else:
+            pass
+        
+    def move_defect(self, defect, x_new, y_new):
+        # moves monomer from old coordinates to new ones
+        x_old, y_old = defect.get_position()
+        if not self.has_defect(x_new, y_new):
+            self.place_defect(defect, x_new, y_new)
+            self.remove_defect(x_old, y_old)
+            defect.set_position(x_new, y_new)
         else:
             pass
 

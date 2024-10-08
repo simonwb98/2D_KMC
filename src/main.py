@@ -11,9 +11,9 @@ import numpy as np
 
 def main():
     # Initialize lattice and monomers
-    width = 15 # only even numbers
+    width = 25 # only even numbers
 
-    monomer_params = ['A', 1.0, 0.00, 1.0, 0.01, 1, 0.000000] 
+    monomer_params = ['A', 1.0, 0.00, 1.0, 0.1, 1, 0.000000] 
     # monomer_type, diffusion_rate, diffusion_energy, rotation_rate, rotation_energy, coupling_rate, coupling_energy
     
     defect_params = [1.0, 0.00, 1.0]
@@ -22,14 +22,14 @@ def main():
     lattice = Lattice(width=width, rotational_symmetry=6, periodic=True)
     # monomers = [Monomer(*monomer_params) for _ in range(50)]
 
-    slow_growth_simulation(lattice, monomer_params,defect_params,defect_density=0.01, total_monomers=20, max_steps=1e5)
+    defects = slow_growth_simulation(lattice, monomer_params,defect_params,defect_density=0.01, total_monomers=20, max_steps=1e5)
 
     # place the monomers at initial positions
     # lattice.randomly_place_monomers(monomers)
 
     # call the plot_simulation function to visualize the diffusion
     # plot_simulation(lattice, monomers, max_steps = 1000, animate=False)
-
+    return defects
 
 # Approaching a more phyisically meaningful system - Reducing the complexity by adding one monomer at a time
 
@@ -71,16 +71,19 @@ def introduce_new_monomer(lattice, new_monomer, monomers, defects, max_steps=1e5
             monomers.append(new_monomer)
             print(f"Monomer succesfully coupled after {steps} steps")
             break
+        
         steps += 1
     else:
         x, y = new_monomer.get_position()
         lattice.remove_monomer(x, y)
         print(f"Monomer failed to couple after {max_steps} steps. Initializing new monomer...")
-
+    
 
 def create_defects(defect_density, lattice, defect_params):
     num_defects = round(defect_density*lattice.width**2)
-    defects = [Defect(*defect_params)]*num_defects  
+    defects = []
+    for num in range(num_defects):
+        defects.append(Defect(*defect_params))
     return defects
 
 
@@ -99,21 +102,21 @@ def slow_growth_simulation(lattice, monomer_params, defect_params, defect_densit
     monomers = []
     
     defects = create_defects(defect_density, lattice, defect_params)
-    lattice.randomly_place_monomers(defects)
-    
+    lattice.randomly_place_defects(defects)
+    print(lattice.dgrid)
     for i in range(2, total_monomers):
         new_monomer = Monomer(*monomer_params) # Constructing a monomer here is fine, but
                                                # we might want to input the lattice into the monomer as a matrix of probabilities
                                                
         lattice.randomly_place_monomers([new_monomer]) # initialize monomer with random position (note that this can also be inside the island on an unoccupied site)
-        introduce_new_monomer(lattice, new_monomer, monomers,defects, max_steps)
+        introduce_new_monomer(lattice, new_monomer, monomers, defects, max_steps)
         
 
     print("Growth simulation completed.")
-    print(len(defects))
     neighbour_freq, radius, radius_of_gyration = analyze_structure(lattice, monomers)
-
+    
     plot_analysis_results(neighbour_freq, radius, lattice, monomers, defects) # some preliminary analysis of the resulting structure
+    return defects
     
 if __name__ == "__main__":
-    main()
+    a= main()
