@@ -54,31 +54,46 @@ class Monomer:
         try:
             grid = lattice.wall_grid
             divisor = lattice.rotational_symmetry
-            site1 = lattice.wall_params[2]
-            
-            i, j = self.get_position()
-            if grid[j][i] == 1:
+            site0 = lattice.wall_params[2]
+            site2 = lattice.wall_params[3]
+
+            x_cur, y_cur = self.get_position()
+            if grid[y_cur][x_cur] == 1:
                 neighbours_grid = lattice.get_neighbours_with_wall(*self.get_position())[0] # get the coords of neighbours
                 neighbours_wall = lattice.get_neighbours_with_wall(*self.get_position())[1] # get the strengths of neighbouring cells
+                num_ones = neighbours_wall.count(1)                
                 num_twos = neighbours_wall.count(2)
-                num_other = divisor - num_twos
+                num_other = divisor - num_twos - num_ones
+                index_ones = [i for i, x in enumerate(neighbours_wall) if (x == 1)]
                 index_twos = [i for i, x in enumerate(neighbours_wall) if x == 2]
-                index_other = [i for i, x in enumerate(neighbours_wall) if (x != 2)]
-                p_over_wall = num_twos*site1*diffusion_prob/divisor
-                p_move = num_other*diffusion_prob/divisor
-                if random.random() < p_over_wall:
-                    landing_spots = []
-                    for index in index_twos:
-                        landing_spots.append(neighbours_grid[index])
-                    x_new, y_new = random.choice(landing_spots)
-                    lattice.move_monomer(self, x_new, y_new)
+                index_other = [i for i, x in enumerate(neighbours_wall) if (x == 0)]
 
-                elif random.random() < p_move:
-                    landing_spots = []
+                p_over_wall = num_twos*site2*diffusion_prob/divisor # probability of jumping over the wall
+                p_zero = num_other*site0*diffusion_prob/divisor # probability of moving to a 0
+                p_ones = (1-p_over_wall-p_zero)/(num_ones+1)*num_ones # probability of moving along the wall
+                p_stay = 1 - (p_over_wall + p_zero + p_ones)
+                probabilities = [p_zero, p_ones, p_over_wall, p_stay]
+                prob_index = random.choices(range(len(probabilities)), weights=probabilities)[0] # choose a probability and return its index
+
+                landing_spots = []
+                if prob_index == 0:
                     for index in index_other:
                         landing_spots.append(neighbours_grid[index])
                     x_new, y_new = random.choice(landing_spots)
                     lattice.move_monomer(self, x_new, y_new)
+
+                elif prob_index == 1:
+                    for index in index_ones:
+                        landing_spots.append(neighbours_grid[index])
+                    x_new, y_new = random.choice(landing_spots)
+                    lattice.move_monomer(self, x_new, y_new)
+                    
+                elif prob_index == 2:
+                    for index in index_twos:
+                        landing_spots.append(neighbours_grid[index])
+                    x_new, y_new = random.choice(landing_spots)
+                    lattice.move_monomer(self, x_new, y_new)
+                    
             else:
                 if random.random() < diffusion_prob: # based on the probability, decide if diffuse or not
                     neighbours = lattice.get_neighbours(*self.get_position())

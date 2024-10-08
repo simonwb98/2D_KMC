@@ -16,8 +16,9 @@ class Lattice:
 
         if wall:
             # Wall should be a list of length 3. The first parameter determines the direction of the wall "horiz" or "vert", the second sets the position,
-            # the third determines the strength of the wall site (ie, the fraction of the original movement probability for a monomer to go over a wall).
-            # ex) wall=["horiz", 3, 0.1]
+            # the third determines the fraction of the original movement probability for a monomer to move away from a wall
+            # the fourth determines the fraction of the original movement probability for a monomer to move over a wall
+            # ex) wall=["horiz", 3, 0.3, 0.1]
             self.wall_params = wall
             self.wall_grid = self.make_wall(self.wall_params[0], self.wall_params[1])
 
@@ -150,7 +151,6 @@ class Lattice:
         else:
             pass
 
-
     def get_neighbours(self, x, y):
         if self.rotational_symmetry == 4:
             neighbours = [(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)]
@@ -160,23 +160,24 @@ class Lattice:
             else:
                 neighbours = [(x, y - 1), (x, y + 1), (x - 1, y), (x + 1, y), (x + 1, y - 1), (x + 1, y + 1)]
         neighbours = list(map(lambda coord: self.wrap_coordinates(*coord), neighbours))
-        return neighbours
-    
+        return neighbours  
 
     def get_neighbours_with_wall(self, x, y):
         if self.rotational_symmetry == 4:
             # I added to the output the values of the wall grid for each neighbour point
             neighbours = [(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)]
-            walls = [self.wall_grid[x-1][y], self.wall_grid[x+1][y], self.wall_grid[x][y-1], self.wall_grid[x][y+1]]
+            n_wrap = list(map(lambda coord: self.wrap_coordinates(*coord), neighbours))
+            walls = [self.wall_grid[n_wrap[0][0]][n_wrap[0][1]], self.wall_grid[n_wrap[1][0]][n_wrap[1][1]], self.wall_grid[n_wrap[2][0]][n_wrap[2][1]], self.wall_grid[n_wrap[3][0]][n_wrap[3][1]]]
         elif self.rotational_symmetry == 6:
             if y % 2 == 0:
                 neighbours = [(x, y - 1), (x, y + 1), (x - 1, y), (x + 1, y), (x - 1, y - 1), (x - 1, y + 1)]
-                walls = [self.wall_grid[x][y-1], self.wall_grid[x][y+1], self.wall_grid[x-1][y], self.wall_grid[x+1][y], self.wall_grid[x-1][y-1], self.wall_grid[x-1][y+1]]
+                n_wrap = list(map(lambda coord: self.wrap_coordinates(*coord), neighbours))
+                walls = [self.wall_grid[n_wrap[0][0]][n_wrap[0][1]], self.wall_grid[n_wrap[1][0]][n_wrap[1][1]], self.wall_grid[n_wrap[2][0]][n_wrap[2][1]], self.wall_grid[n_wrap[3][0]][n_wrap[3][1]], self.wall_grid[n_wrap[4][0]][n_wrap[4][1]], self.wall_grid[n_wrap[5][0]][n_wrap[5][1]]]
             else:
                 neighbours = [(x, y - 1), (x, y + 1), (x - 1, y), (x + 1, y), (x + 1, y - 1), (x + 1, y + 1)] 
-                walls = [self.wall_grid[x][y-1], self.wall_grid[x][y+1], self.wall_grid[x-1][y], self.wall_grid[x+1][y], self.wall_grid[x+1][y-1], self.wall_grid[x+1][y+1]]
-        neighbours = list(map(lambda coord: self.wrap_coordinates(*coord), neighbours))
-        return [neighbours, walls]
+                n_wrap = list(map(lambda coord: self.wrap_coordinates(*coord), neighbours))
+                walls = [self.wall_grid[n_wrap[0][0]][n_wrap[0][1]], self.wall_grid[n_wrap[1][0]][n_wrap[1][1]], self.wall_grid[n_wrap[2][0]][n_wrap[2][1]], self.wall_grid[n_wrap[3][0]][n_wrap[3][1]], self.wall_grid[n_wrap[4][0]][n_wrap[4][1]], self.wall_grid[n_wrap[5][0]][n_wrap[5][1]]]
+        return [n_wrap, walls]
         
     def get_next_nearest_neighbours(self, x, y, orientation):
         # for now only 6-fold rotational symmetry
