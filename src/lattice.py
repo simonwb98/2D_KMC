@@ -2,6 +2,9 @@
 import random
 import numpy as np
 from monomer import Monomer
+from defect import Defect
+import math
+
 
 class Lattice:
     def __init__(self, width, rotational_symmetry, wall_params=[(0,0), 0, 0], periodic = False, temperature = 300):
@@ -94,6 +97,26 @@ class Lattice:
             monomer.set_position(x, y)
         else:
             pass
+    
+    def construct_herringbone(self, start_x, start_y, tau, width, nucleation_prob):
+        max_length = int(self.width/tau)
+        defects = [Defect(0, 0, nucleation_prob)]
+        self.place_defect(defects[0], start_x, start_y)
+        new_x = start_x
+        new_y = start_y
+        
+        for i in range(max_length*2):
+            defects.append(Defect(0, 0, nucleation_prob))
+            new_x += math.ceil(tau/2)
+            if i % 2 == 0:
+                new_y += width - 1
+            else:
+                new_y -= width - 1
+            
+            self.place_defect(defects[-1], new_x, new_y)
+        
+        return defects
+        
     
     # Identical to place_monomer, just for defect grid
     def place_defect(self, defect, x, y):

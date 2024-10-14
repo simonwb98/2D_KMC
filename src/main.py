@@ -88,7 +88,7 @@ def create_defects(defect_density, lattice, defect_params):
 
 
 # Gotta change this function a bit
-def slow_growth_simulation(lattice, monomer_params, defect_params, defect_density, total_monomers, max_steps=1e5):
+def slow_growth_simulation(lattice, monomer_params, defect_params, defect_density, total_monomers, herringbone=True, max_steps=1e5):
     '''
     What I call slow_growth here is what I had explained in our meeting, where the density of monomers is so low that 
     it is physically accurate to model only a single monomer at a time until it coupled to the growing island. Only after 
@@ -103,7 +103,9 @@ def slow_growth_simulation(lattice, monomer_params, defect_params, defect_densit
     
     defects = create_defects(defect_density, lattice, defect_params)
     lattice.randomly_place_defects(defects)
-    print(lattice.dgrid)
+    herringbone = lattice.construct_herringbone(1, 9, 6, 9, defect_params[-1])
+    if herringbone is None:
+        raise ValueError('Herringbone period is too large')
     for i in range(2, total_monomers):
         new_monomer = Monomer(*monomer_params) # Constructing a monomer here is fine, but
                                                # we might want to input the lattice into the monomer as a matrix of probabilities
@@ -115,7 +117,7 @@ def slow_growth_simulation(lattice, monomer_params, defect_params, defect_densit
     print("Growth simulation completed.")
     neighbour_freq, radius, radius_of_gyration = analyze_structure(lattice, monomers)
     
-    plot_analysis_results(neighbour_freq, radius, lattice, monomers, defects) # some preliminary analysis of the resulting structure
+    plot_analysis_results(neighbour_freq, radius, lattice, monomers, defects, herringbone) # some preliminary analysis of the resulting structure
     return defects
     
 if __name__ == "__main__":
