@@ -1,5 +1,6 @@
 # src/plotter.py
 
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.patches import RegularPolygon, Circle
@@ -93,11 +94,20 @@ def plot_analysis_results(neighbor_frequencies, effective_radius, lattice, monom
     fig, ax = plt.subplots(1, 2, figsize=(14, 7)) 
 
     ax[0].clear()
-    
     # loop through all valid lattice coordinates and plot circles at each point
     for (x, y) in lattice.lattice_coord:
         x_offset = x + 0.5 if y % 2 != 0 else x  # adjust for hexagonal staggered rows
         ax[0].add_patch(plt.Circle((x_offset, y), 0.3, facecolor='lightgray', edgecolor='black', lw=1))
+    if lattice.wall:
+        y_wall1, x_wall1 = np.where(lattice.wall_grid == 1)
+        for i in range(len(x_wall1)):
+            x_1 = x_wall1[i] + 0.5 if y_wall1[i] % 2 != 0 else x_wall1[i]  # adjust for hexagonal staggered rows
+            ax[0].add_patch(plt.Circle((x_1, y_wall1[i]), 0.3, facecolor = 'yellow', edgecolor = 'orange', lw = 1))
+        y_wall2, x_wall2 = np.where(lattice.wall_grid == 2)
+        for i in range(len(x_wall2)):
+            x_2 = x_wall2[i] + 0.5 if y_wall2[i] % 2 != 0 else x_wall2[i]  # adjust for hexagonal staggered rows
+            ax[0].add_patch(plt.Circle((x_2, y_wall2[i]), 0.3, facecolor = 'orange', edgecolor = 'orange', lw = 1))
+
 
     # plot the monomers' positions
     for monomer in monomers:

@@ -13,7 +13,7 @@ class Lattice:
         self.temperature = temperature # in K
         self.substrate_properties = {}
         self.define_grid()
-
+        self.wall = wall
         if wall:
             # Wall should be a list of length 3. The first parameter determines the direction of the wall "horiz" or "vert", the second sets the position,
             # the third determines the fraction of the original movement probability for a monomer to move away from a wall
