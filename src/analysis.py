@@ -79,7 +79,7 @@ def calculate_effective_radius(lattice, monomers):
     
     # compute the radius of gyration (effective radius)
     radius = np.sqrt(np.mean(squared_distances))
-    radius_of_gyration = radius
+    radius_of_gyration = radius/np.sqrt(len(monomers))
     
     return radius, radius_of_gyration
 

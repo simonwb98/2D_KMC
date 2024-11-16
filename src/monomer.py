@@ -64,22 +64,23 @@ class Monomer:
 
     def couple(self, lattice):
         coupling_prob = self.coupling_probability(lattice)
-        neighbours = lattice.get_neighbours(*self.get_position())
-        if any(lattice.is_occupied(nx, ny) for (nx, ny) in neighbours):
-            return # disallow coupling when there are nearest neighbours to this monomer. This condition basically realizes the fact that monomers physically restrict each other (geometric hindrance) - a cleaner way of doing this is to disallow diffusion into sites that have monomers that are nearest neighbours, but this is fine also.
-        next_neighbours = lattice.get_next_nearest_neighbours(*self.get_position(), self.get_orientation()) # this could potentially be made faster sometime down the line
-        neighbouring_monomers = [lattice.grid[ny][nx] for (nx, ny) in next_neighbours if not lattice.grid[ny][nx] == None and lattice.grid[ny][nx].get_orientation() != self.get_orientation()]
 
-        if neighbouring_monomers:
-            for partner in neighbouring_monomers:
-                if random.random() < coupling_prob:
-                    partner_neighbours = lattice.get_neighbours(*partner.get_position())
+        if random.random() < coupling_prob:
+            neighbours = lattice.get_neighbours(*self.get_position())
+            if any(lattice.is_occupied(nx, ny) for (nx, ny) in neighbours):
+                return # disallow coupling when there are nearest neighbours to this monomer. This condition basically realizes the fact that monomers physically restrict each other (geometric hindrance) - a cleaner way of doing this is to disallow diffusion into sites that have monomers that are nearest neighbours, but this is fine also.
+            next_neighbours = lattice.get_next_nearest_neighbours(*self.get_position(), self.get_orientation()) # this could potentially be made faster sometime down the line
+            neighbouring_monomers = [lattice.grid[ny][nx] for (nx, ny) in next_neighbours if not lattice.grid[ny][nx] == None and lattice.grid[ny][nx].get_orientation() != self.get_orientation()]
 
-                    if any(lattice.is_occupied(nx, ny) for (nx, ny) in partner_neighbours):
-                            return
+            if neighbouring_monomers:
+                partner = random.choice(neighbouring_monomers)
+                partner_neighbours = lattice.get_neighbours(*partner.get_position())
 
-                    self.couple_with(partner)
-                
+                if any(lattice.is_occupied(nx, ny) for (nx, ny) in partner_neighbours):
+                    return
+
+                self.couple_with(partner)
+            
     def action(self, lattice):
         '''
         Runs all actions a monomer can perform in succession.
