@@ -26,6 +26,13 @@ class Lattice:
         lattice_coord = [(i, j) for i in range(self.width) for j in range(self.height)]
         return grid, lattice_coord
     
+    def generate_boundary(self):
+        edge_coordinates = [
+            (x, y) for (x, y) in self.lattice_coord
+            if x == 0 or x == self.width - 1 or y == 0 or self.width - 1
+        ]
+        return edge_coordinates
+    
     def is_member(self, x, y):
         if (x, y) not in self.lattice_coord:
             raise KeyError(f"Coordinates ({x}, {y}) not found in lattice with lattice sites: {self.lattice_coord}\n")
@@ -86,12 +93,51 @@ class Lattice:
         for monomer in monomers:
             unoccupied = [(x, y) for (x, y) in self.lattice_coord if not self.is_occupied(x, y)]
 
-            if unoccupied:
+            weights = []
+            for x, y in unoccupied:
+                occupied_neighbors = sum(
+                    1 for nx, ny in self.get_next_nearest_neighbours(x, y, monomer.get_orientation()) if self.is_occupied(nx, ny)
+                )
+                weight = 1 / (occupied_neighbors + 1)
+                weights.append(weight)
+            
+            total_weight = sum(weights)
+            probabilities = [w / total_weight for w in weights]
+
+            chosen_index = random.choices(range(len(unoccupied)), weights=probabilities, k=1)[0]
+            x, y = unoccupied[chosen_index]
+            
+            # Place the monomer
+            monomer.set_position(x, y)
+            self.grid[y][x] = monomer
+
+            """if unoccupied:
                 (x, y) = random.choice(unoccupied)
                 monomer.set_position(x, y)
-                self.grid[y][x] = monomer
+                self.grid[y][x] = monomer 
+            """
             
-        
+    def randomly_place_monomers_on_edge(self, monomers):
+        for monomer in monomers:
+            unoccupied = [(x, y) for (x, y) in self.generate_boundary() if not self.is_occupied(x, y)]
+
+            weights = []
+            for x, y in unoccupied:
+                occupied_neighbors = sum(
+                    1 for nx, ny in self.get_next_nearest_neighbours(x, y, monomer.get_orientation()) if self.is_occupied(nx, ny)
+                )
+                weight = 1 / (occupied_neighbors + 1)
+                weights.append(weight)
+            
+            total_weight = sum(weights)
+            probabilities = [w / total_weight for w in weights]
+
+            chosen_index = random.choices(range(len(unoccupied)), weights=probabilities, k=1)[0]
+            x, y = unoccupied[chosen_index]
+            
+            # Place the monomer
+            monomer.set_position(x, y)
+            self.grid[y][x] = monomer 
 
     def remove_monomer(self, x, y):
         if self.is_occupied(x, y):

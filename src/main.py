@@ -5,19 +5,47 @@ from monomer import Monomer
 from plotter import plot_simulation, plot_final_state, plot_analysis_results
 from analysis import analyze_structure
 import random
+import numpy as np
+from matplotlib import pyplot as plt
 
 def main():
-    # Initialize lattice and monomers
-    width = 15 # only even numbers
+    N = 5 # N^2 is the number of simulations
 
-    monomer_params = ['A', 1.0, 0.00, 1.0, 0.01, 1, 0.000000] 
-    # monomer_type, diffusion_rate, diffusion_energy, rotation_rate, rotation_energy, coupling_rate, coupling_energy
+    p_c = np.linspace(0.1, 1, N)
+    p_d = np.linspace(0.1, 1, N)
 
-    lattice = Lattice(width=width, rotational_symmetry=6, periodic=True)
-    # monomers = [Monomer(*monomer_params) for _ in range(50)]
+    A, B = np.meshgrid(p_c, p_d)
+    results = np.zeros((N, N), dtype=[('radius_of_gyration', float)])
 
-    slow_growth_simulation(lattice, monomer_params, total_monomers=20, max_steps=1e5)
+    for i in range(A.shape[0]):
+        for j in range(B.shape[1]):
+            p_c = A[i, j]
+            p_d = B[i, j]
 
+            monomer_params = ['A', p_d, 0, 1.0, 0.00, p_c, 0] 
+            # monomer_type, diffusion_rate, diffusion_energy, rotation_rate, rotation_energy, coupling_rate, coupling_energy
+
+            width = 7 # only even numbers
+
+            lattice = Lattice(width=width, rotational_symmetry=6, periodic=True)
+            # monomers = [Monomer(*monomer_params) for _ in range(50)]
+
+            neighbour_freq, radius, radius_of_gyration = slow_growth_simulation(lattice, monomer_params, total_monomers=20, max_steps=1e6)
+
+            results[i, j] = (radius_of_gyration)
+
+            print("Growth completed. Starting new simulation...")
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection = '3d')
+    ax.plot_surface(A, B, results, cmap = 'viridis')
+
+    ax.set_xlabel("Coupling Probability")
+    ax.set_ylabel("Diffusion Probability")
+    ax.set_zlabel("Radius of Gyration")
+
+    plt.show()
+    
     # place the monomers at initial positions
     # lattice.randomly_place_monomers(monomers)
 
@@ -61,12 +89,14 @@ def introduce_new_monomer(lattice, new_monomer, monomers, max_steps=1e5):
         new_monomer.action(lattice)
         if new_monomer.coupled:
             monomers.append(new_monomer)
-            print(f"Monomer succesfully coupled after {steps} steps")
+            # print(f"Monomer succesfully coupled after {steps} steps")
             break
         steps += 1
     else:
+        """ 
         x, y = new_monomer.get_position()
         lattice.remove_monomer(x, y)
+        """
         print(f"Monomer failed to couple after {max_steps} steps. Initializing new monomer...")
 
 def slow_growth_simulation(lattice, monomer_params, total_monomers, max_steps=1e5):
@@ -80,7 +110,7 @@ def slow_growth_simulation(lattice, monomer_params, total_monomers, max_steps=1e
 
     for i in range(2, total_monomers):
         new_monomer = Monomer(*monomer_params)
-        lattice.randomly_place_monomers([new_monomer]) # initialize monomer with random position (note that this can also be inside the island on an unoccupied site)
+        lattice.randomly_place_monomers_on_edge([new_monomer]) # initialize monomer with random position (note that this can also be inside the island on an unoccupied site)
         introduce_new_monomer(lattice, new_monomer, monomers, max_steps)
         
 
@@ -88,7 +118,9 @@ def slow_growth_simulation(lattice, monomer_params, total_monomers, max_steps=1e
 
     neighbour_freq, radius, radius_of_gyration = analyze_structure(lattice, monomers)
 
-    plot_analysis_results(neighbour_freq, radius, lattice, monomers) # some preliminary analysis of the resulting structure
+    return neighbour_freq, radius, radius_of_gyration
+
+    # plot_analysis_results(neighbour_freq, radius, lattice, monomers) # some preliminary analysis of the resulting structure
 
 if __name__ == "__main__":
     main()

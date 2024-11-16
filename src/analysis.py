@@ -31,11 +31,11 @@ def calculate_effective_radius(lattice, monomers):
     x_center_of_mass = np.mean(x_positions)
     y_center_of_mass = np.mean(y_positions)
     
-    # calculate the squared distances from the center of mass
+    # calculate the squared distances from the center of masss
     squared_distances = (x_positions - x_center_of_mass)**2 + (y_positions - y_center_of_mass)**2
     
     # compute the radius of gyration (effective radius)
     radius = np.sqrt(np.mean(squared_distances))
-    radius_of_gyration = radius/np.sqrt(len(monomers))
+    radius_of_gyration = radius
     
     return radius, radius_of_gyration
