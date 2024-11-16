@@ -1,5 +1,6 @@
 # src/lattice.py
 import random
+import numpy as np
 
 class Lattice:
     def __init__(self, width, rotational_symmetry, periodic = False, temperature = 300):
@@ -164,6 +165,7 @@ class Lattice:
 
         neighbours = list(map(lambda coord: self.wrap_coordinates(*coord), neighbours))
         return neighbours
+
         
     def get_next_nearest_neighbours(self, x, y, orientation):
         # for now only 6-fold rotational symmetry
@@ -183,3 +185,69 @@ class Lattice:
         
         next_nearest = list(map(lambda coord: self.wrap_coordinates(*coord), next_nearest))
         return next_nearest
+    
+    def find_cells(self):
+        """
+        Identify all enclosed areas (cells) in the lattice.
+        
+        Returns:
+            List of sets: Each set contains the coordinates of monomers that form a cell.
+        """
+        visited = set()
+        cells = []
+
+        def is_cell_boundary(coord):
+            """Check if a coordinate is part of a potential cell boundary."""
+            x, y = coord
+            return self.is_occupied(x, y)
+
+        def explore_boundary(start):
+            """Explore the boundary of a cell starting from a given coordinate."""
+            stack = [start]
+            boundary = set()
+            
+            while stack:
+                current = stack.pop()
+                if current not in visited and is_cell_boundary(current):
+                    visited.add(current)
+                    boundary.add(current)
+                    neighbors = self.get_neighbours(*current)
+                    stack.extend(neighbors)
+            
+            return boundary
+
+        for coord in self.lattice_coord:
+            if coord not in visited and is_cell_boundary(coord):
+                boundary = explore_boundary(coord)
+                if boundary:  # A valid enclosed area
+                    cells.append(boundary)
+
+        return cells
+
+    
+    def get_cell_areas(self):
+        """
+        Calculate the area of each cell identified in the lattice.
+
+        Returns:
+            List of floats: Areas of the identified cells.
+        """
+        cells = self.find_cells()
+        cell_areas = []
+
+        for cell in cells:
+
+            if len(cell) < 6:
+                continue
+
+            vertices = list(cell)
+            area = 0.0
+            for i in range(len(vertices)):
+                x1, y1 = vertices[i]
+                x2, y2 = vertices[(i + 1) % len(vertices)]
+                area += x1 * y2 - x2 * y1
+            area = abs(area) / 2.0
+            cell_areas.append(area)
+            
+        return cell_areas
+
