@@ -16,8 +16,8 @@ def main():
 
     A, B = np.meshgrid(p_c, p_d)
     save_meshgrid(A, B, 
-                  r"C:\Users\User\Desktop\research-updates\thesis\figures\results\2D_KMC\meshgrid_p_c.npy", 
-                  r"C:\Users\User\Desktop\research-updates\thesis\figures\results\2D_KMC\meshgrid_p_d.npy")
+                  r"data\meshgrid_p_c.npy", 
+                  r"data\meshgrid_p_d.npy")
     print("Meshgrids p_c and p_d saved.")
 
     results = np.zeros((N, N), dtype=[
@@ -51,7 +51,7 @@ def main():
 
             print(results[i, j])
 
-    save_data(results, r"C:\Users\User\Desktop\research-updates\thesis\figures\results\2D_KMC\simulation_results.txt")
+    save_data(results, r"data\simulation_results.txt")
     print("Results saved to simulation_results.txt.")
 
 
