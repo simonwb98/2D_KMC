@@ -21,7 +21,7 @@ def analyze_structure(lattice, monomers):
     radius, radius_of_gyration = calculate_effective_radius(lattice, monomers)
     print(f"The Radius of Gyration of the Structure is {radius_of_gyration}")
 
-    # Skeletonize and analyze enclosed areas
+    """ # Skeletonize and analyze enclosed areas
     num_enclosed_areas, avg_enclosed_area, enclosed_areas = skeletonize_and_analyze(lattice)
     print(f"Number of enclosed areas: {num_enclosed_areas}")
     print(f"Average enclosed area: {avg_enclosed_area:.2f}")
@@ -31,9 +31,9 @@ def analyze_structure(lattice, monomers):
     cell_areas = calculate_average_cell_area(lattice, neighbour_frequencies)
     m, sigma = calculate_mst_metrics(positions, cell_areas)
     print(f"Normalized mean edge length (m): {m:.4f}")
-    print(f"Normalized standard deviation of edge lengths (sigma): {sigma:.4f}")
+    print(f"Normalized standard deviation of edge lengths (sigma): {sigma:.4f}") """
 
-    return neighbour_frequencies, radius, radius_of_gyration, m, sigma, num_enclosed_areas, avg_enclosed_area, enclosed_areas
+    return neighbour_frequencies, radius, radius_of_gyration
 
 def skeletonize_and_analyze(lattice):
     """

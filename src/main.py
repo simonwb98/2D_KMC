@@ -9,13 +9,24 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 def main():
-    N = 5 # N^2 is the number of simulations
+    N = 2 # N^2 is the number of simulations
 
     p_c = np.linspace(0.1, 1, N)
     p_d = np.linspace(0.1, 1, N)
 
     A, B = np.meshgrid(p_c, p_d)
-    results = np.zeros((N, N), dtype=[('radius_of_gyration', float)])
+    save_meshgrid(A, B, 
+                  r"C:\Users\User\Desktop\research-updates\thesis\figures\results\2D_KMC\meshgrid_p_c.npy", 
+                  r"C:\Users\User\Desktop\research-updates\thesis\figures\results\2D_KMC\meshgrid_p_d.npy")
+    print("Meshgrids p_c and p_d saved.")
+
+    results = np.zeros((N, N), dtype=[
+        ('p_coupling', float),
+        ('p_diffusion', float),
+        ('radius_of_gyration', float),
+        ('neighbour_degrees', object),  # Keys from the Counter
+        ('neighbour_frequencies', object)  # Values from the Counter
+    ])
 
     for i in range(A.shape[0]):
         for j in range(B.shape[1]):
@@ -25,18 +36,26 @@ def main():
             monomer_params = ['A', p_d, 0, 1.0, 0.00, p_c, 0] 
             # monomer_type, diffusion_rate, diffusion_energy, rotation_rate, rotation_energy, coupling_rate, coupling_energy
 
-            width = 7 # only even numbers
+            width = 30 # only even numbers
 
             lattice = Lattice(width=width, rotational_symmetry=6, periodic=True)
             # monomers = [Monomer(*monomer_params) for _ in range(50)]
 
             neighbour_freq, radius, radius_of_gyration = slow_growth_simulation(lattice, monomer_params, total_monomers=20, max_steps=1e6)
 
-            results[i, j] = (radius_of_gyration)
+            # Extract keys and values from the Counter
+            degrees = list(neighbour_freq.keys())
+            frequencies = list(neighbour_freq.values())
 
-            print("Growth completed. Starting new simulation...")
+            results[i, j] = (p_c, p_d, radius_of_gyration, degrees, frequencies)
 
-    fig = plt.figure()
+            print(results[i, j])
+
+    save_data(results, r"C:\Users\User\Desktop\research-updates\thesis\figures\results\2D_KMC\simulation_results.txt")
+    print("Results saved to simulation_results.txt.")
+
+
+"""     fig = plt.figure()
     ax = fig.add_subplot(111, projection = '3d')
     ax.plot_surface(A, B, results, cmap = 'viridis')
 
@@ -44,13 +63,54 @@ def main():
     ax.set_ylabel("Diffusion Probability")
     ax.set_zlabel("Radius of Gyration")
 
-    plt.show()
+    plt.show() """
     
     # place the monomers at initial positions
     # lattice.randomly_place_monomers(monomers)
 
     # call the plot_simulation function to visualize the diffusion
     # plot_simulation(lattice, monomers, max_steps = 1000, animate=False)
+
+def save_data(results, filename):
+    """
+    Save the results matrix to a text file.
+
+    Parameters:
+        results (np.ndarray): The structured results array.
+        filename (str): The name of the output file.
+    """
+    with open(filename, 'w') as f:
+        # Write a header
+        f.write("p_coupling, p_diffusion, radius_of_gyration, neighbour_degrees, neighbour_frequencies\n")
+
+        # Write each entry in the results array
+        for i in range(results.shape[0]):
+            for j in range(results.shape[1]):
+                A_ij = results[i, j]['p_coupling']
+                B_ij = results[i, j]['p_diffusion']
+                radius = results[i, j]['radius_of_gyration']
+                degrees = results[i, j]['neighbour_degrees']
+                frequencies = results[i, j]['neighbour_frequencies']
+                
+                # Format degrees and frequencies as strings
+                degrees_str = ','.join(map(str, degrees))
+                frequencies_str = ','.join(map(str, frequencies))
+
+                # Write to the file
+                f.write(f"{A_ij}, {B_ij}, {radius}, [{degrees_str}], [{frequencies_str}]\n")
+
+def save_meshgrid(A, B, filename_A="meshgrid_p_c.npy", filename_B="meshgrid_p_d.npy"):
+    """
+    Save meshgrid parts A and B to separate .npy files.
+
+    Parameters:
+        A (np.ndarray): The first part of the meshgrid.
+        B (np.ndarray): The second part of the meshgrid.
+        filename_A (str): Filename for saving A.
+        filename_B (str): Filename for saving B.
+    """
+    np.save(filename_A, A)
+    np.save(filename_B, B)
 
 
 # Approaching a more phyisically meaningful system - Reducing the complexity by adding one monomer at a time
@@ -89,7 +149,7 @@ def introduce_new_monomer(lattice, new_monomer, monomers, max_steps=1e5):
         new_monomer.action(lattice)
         if new_monomer.coupled:
             monomers.append(new_monomer)
-            # print(f"Monomer succesfully coupled after {steps} steps")
+            print(f"Monomer succesfully coupled after {steps} steps")
             break
         steps += 1
     else:
@@ -110,7 +170,7 @@ def slow_growth_simulation(lattice, monomer_params, total_monomers, max_steps=1e
 
     for i in range(2, total_monomers):
         new_monomer = Monomer(*monomer_params)
-        lattice.randomly_place_monomers_on_edge([new_monomer]) # initialize monomer with random position (note that this can also be inside the island on an unoccupied site)
+        lattice.randomly_place_monomers([new_monomer]) # initialize monomer with random position (note that this can also be inside the island on an unoccupied site)
         introduce_new_monomer(lattice, new_monomer, monomers, max_steps)
         
 
