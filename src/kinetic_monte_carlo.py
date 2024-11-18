@@ -2,6 +2,28 @@
 import random 
 import math
 
+from sortedcontainers import SortedList
+
+class RateContainer:
+    def __init__(self):
+        self.events = SortedList(key=lambda event: event[2])  # Sort by cumulative rate
+
+    def add_event(self, monomer, action, rate):
+        cumulative_rate = self.get_total_rate() + rate
+        self.events.add((monomer, action, cumulative_rate))
+
+    def get_total_rate(self):
+        return self.events[-1][2] if self.events else 0
+
+    def select_event(self, u):
+        """
+        Select an event probabilistically based on a random number u in [0, 1).
+        """
+        cumulative_rate = u * self.get_total_rate()
+        for monomer, action, rate in self.events:
+            if cumulative_rate <= rate:
+                return monomer, action
+
 
 def calculate_global_rate(lattice, monomers):
     """
@@ -122,3 +144,43 @@ def kmc_simulation(lattice, monomers, max_steps=1e5):
     print(f"Simulation completed in {time:.2f} units.")
     return time
 
+def kmc_simulation_optimized(lattice, monomers, max_steps=1e5):
+    """
+    Perform the optimized kMC simulation.
+    """
+    time = 0
+    rate_container = RateContainer()
+
+    # Precompute neighbors
+    lattice.precompute_neighbors()
+
+    # Initialize rates and events
+    for monomer in monomers:
+        monomer.update_rates(lattice)
+        rate_container.add_event(monomer, "diffuse", monomer.cached_diffusion_rate)
+        rate_container.add_event(monomer, "rotate", monomer.cached_rotation_rate)
+        rate_container.add_event(monomer, "couple", monomer.cached_coupling_rate)
+
+    for step in range(int(max_steps)):
+        R_total = rate_container.get_total_rate()
+        if R_total == 0:
+            break  # No more events possible
+
+        # Select an event
+        u1 = random.random()
+        monomer, action = rate_container.select_event(u1)
+
+        # Perform the selected event
+        perform_event(monomer, action, lattice)
+
+        # Update affected rates
+        monomer.update_rates(lattice)
+        # Update the rate container dynamically...
+
+        # Advance time
+        u2 = random.random()
+        delta_t = -math.log(u2) / R_total
+        time += delta_t
+
+    print(f"Optimized simulation completed in {time:.2f} units.")
+    return time

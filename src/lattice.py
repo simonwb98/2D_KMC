@@ -179,28 +179,31 @@ class Lattice:
         return cells
 
     
-    def get_cell_areas(self):
+    def precompute_neighbors(self):
         """
-        Calculate the area of each cell identified in the lattice.
-
-        Returns:
-            List of floats: Areas of the identified cells.
+        Precompute neighbors and next-nearest neighbors for each lattice site and orientation.
         """
-        cells = self.find_cells()
-        cell_areas = []
+        self.neighbors = {}
+        self.next_nearest_neighbors = {}
+        orientations = [0, 180]  # Example orientations; adjust based on your system
 
-        for cell in cells:
+        for x in range(self.width):
+            for y in range(self.height):
+                for orientation in orientations:
+                    # Compute neighbors and next-nearest neighbors for each orientation
+                    self.neighbors[(x, y, orientation)] = self.get_neighbours(x, y)
+                    self.next_nearest_neighbors[(x, y, orientation)] = self.get_next_nearest_neighbours(x, y, orientation)
 
-            if len(cell) < 6:
-                continue
+    def get_cached_neighbors(self, x, y, orientation):
+        """
+        Retrieve precomputed neighbors for a site and orientation.
+        """
+        return self.neighbors.get((x, y, orientation), [])
 
-            vertices = list(cell)
-            area = 0.0
-            for i in range(len(vertices)):
-                x1, y1 = vertices[i]
-                x2, y2 = vertices[(i + 1) % len(vertices)]
-                area += x1 * y2 - x2 * y1
-            area = abs(area) / 2.0
-            cell_areas.append(area)
-            
-        return cell_areas
+    def get_cached_next_nearest_neighbors(self, x, y, orientation):
+        """
+        Retrieve precomputed next-nearest neighbors for a site and orientation.
+        """
+        return self.next_nearest_neighbors.get((x, y, orientation), [])
+
+

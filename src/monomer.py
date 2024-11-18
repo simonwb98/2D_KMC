@@ -49,12 +49,13 @@ class Monomer:
         other.coupled = True
 
     def diffuse(self, lattice):
-        diffusion_prob = self.diffusion_probability(lattice) # get probability
-        
-        if random.random() < diffusion_prob: # based on the probability, decide if diffuse or not
-            neighbours = lattice.get_neighbours(*self.get_position())
-            x_new, y_new = random.choice(neighbours)
+        x, y = self.get_position()
+        neighbors = lattice.get_cached_neighbors(x, y, self.get_orientation())
+        unoccupied_sites = [site for site in neighbors if not lattice.is_occupied(*site)]
+        if unoccupied_sites:
+            x_new, y_new = random.choice(unoccupied_sites)
             lattice.move_monomer(self, x_new, y_new)
+
 
     def rotate(self, lattice):
         rotation_prob = self.rotation_probability(lattice)
@@ -63,23 +64,19 @@ class Monomer:
             self.set_orientation(random.choice([o for o in self.orientations if not o == self.orientation]))
 
     def couple(self, lattice):
-        coupling_prob = self.coupling_probability(lattice)
+        """
+        Perform coupling using cached next-nearest neighbors.
+        """
+        x, y = self.get_position()
+        next_nearest = lattice.get_cached_next_nearest_neighbors(x, y, self.orientation)
+        candidates = [
+            lattice.grid[ny][nx] for nx, ny in next_nearest
+            if lattice.grid[ny][nx] and lattice.grid[ny][nx].orientation != self.orientation
+        ]
+        if candidates:
+            partner = random.choice(candidates)
+            self.couple_with(partner)
 
-        if random.random() < coupling_prob:
-            neighbours = lattice.get_neighbours(*self.get_position())
-            if any(lattice.is_occupied(nx, ny) for (nx, ny) in neighbours):
-                return # disallow coupling when there are nearest neighbours to this monomer. This condition basically realizes the fact that monomers physically restrict each other (geometric hindrance) - a cleaner way of doing this is to disallow diffusion into sites that have monomers that are nearest neighbours, but this is fine also.
-            next_neighbours = lattice.get_next_nearest_neighbours(*self.get_position(), self.get_orientation()) # this could potentially be made faster sometime down the line
-            neighbouring_monomers = [lattice.grid[ny][nx] for (nx, ny) in next_neighbours if not lattice.grid[ny][nx] == None and lattice.grid[ny][nx].get_orientation() != self.get_orientation()]
-
-            if neighbouring_monomers:
-                partner = random.choice(neighbouring_monomers)
-                partner_neighbours = lattice.get_neighbours(*partner.get_position())
-
-                if any(lattice.is_occupied(nx, ny) for (nx, ny) in partner_neighbours):
-                    return
-
-                self.couple_with(partner)
             
     def calculate_diffusion_rate(self, lattice):
         """
@@ -151,10 +148,23 @@ class Monomer:
         )
 
 
-        def action(self, lattice):
-            '''
-            Runs all actions a monomer can perform in succession.
-            '''
-            self.diffuse(lattice)
-            self.rotate(lattice)
-            self.couple(lattice)
+    def update_rates(self, lattice):
+        """
+        Update the rates for diffusion, rotation, and coupling based on the local environment.
+        Skip updating if the monomer is already coupled.
+        """
+        if self.coupled:
+            self.cached_diffusion_rate = 0
+            self.cached_rotation_rate = 0
+            self.cached_coupling_rate = 0
+        else:
+            self.cached_diffusion_rate = self.calculate_diffusion_rate(lattice)
+            self.cached_rotation_rate = self.calculate_rotation_rate(lattice)
+            self.cached_coupling_rate = self.calculate_coupling_rate(lattice)
+
+
+    def calculate_total_rate(self):
+        """
+        Use cached rates to compute the total rate for the monomer.
+        """
+        return self.cached_diffusion_rate + self.cached_rotation_rate + self.cached_coupling_rate

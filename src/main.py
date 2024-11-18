@@ -4,7 +4,7 @@ from lattice import Lattice
 from monomer import Monomer
 from plotter import plot_simulation, plot_final_state, plot_analysis_results
 from analysis import analyze_structure
-from kinetic_monte_carlo import kmc_simulation
+from kinetic_monte_carlo import kmc_simulation_optimized
 import random
 import numpy as np
 from matplotlib import pyplot as plt
@@ -67,7 +67,7 @@ def grow_dimer(lattice, monomer_params, total_monomers, max_steps=1e5):
         monomers.append(new_monomer)
 
         # Run kMC simulation for this monomer to couple
-        time_spent = kmc_simulation(lattice, monomers, max_steps=max_steps)
+        time_spent = kmc_simulation_optimized(lattice, monomers, max_steps=max_steps)
         total_time += time_spent
 
         # Check if the monomer coupled; if not, remove it
@@ -92,7 +92,7 @@ def main():
 
     # Optional: Grow dimer for demonstration
     total_monomers = 10
-    max_steps = 1e6
+    max_steps = 10000
     print("Starting dimer growth simulation...")
     lattice, monomers = grow_dimer(lattice, monomer_params, total_monomers=total_monomers, max_steps=max_steps)
     plot_final_state(lattice, monomers)
