@@ -204,4 +204,3 @@ class Lattice:
             cell_areas.append(area)
             
         return cell_areas
-

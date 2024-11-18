@@ -11,7 +11,7 @@ class Monomer:
         self.rotation_rate = rotation_rate
         self.rotation_energy = rotation_energy
         self.coupling_rate = coupling_rate
-        self.coupling_energy = coupling_energy
+        self.coupling_energy = float(coupling_energy)
         self.coupled = False
         self.position = None
         self.orientations = orientations
@@ -81,10 +81,80 @@ class Monomer:
 
                 self.couple_with(partner)
             
-    def action(self, lattice):
-        '''
-        Runs all actions a monomer can perform in succession.
-        '''
-        self.diffuse(lattice)
-        self.rotate(lattice)
-        self.couple(lattice)
+    def calculate_diffusion_rate(self, lattice):
+        """
+        Calculate the total diffusion rate for this monomer based on unoccupied neighbors.
+
+        Args:
+            lattice (Lattice): The lattice object.
+
+        Returns:
+            float: Total diffusion rate.
+        """
+        if not self.coupled:
+            temperature = lattice.temperature
+            base_rate = self.diffusion_rate * math.exp(-self.diffusion_energy / (k_B * temperature))
+            neighbors = lattice.get_neighbours(*self.get_position())
+            unoccupied_sites = [site for site in neighbors if not lattice.is_occupied(*site)]
+            return len(unoccupied_sites) * base_rate
+        else: 
+            return 0
+
+    def calculate_coupling_rate(self, lattice):
+        """
+        Calculate the total coupling rate for this monomer based on valid next-nearest neighbors.
+
+        Args:
+            lattice (Lattice): The lattice object.
+
+        Returns:
+            float: Total coupling rate.
+        """
+        temperature = lattice.temperature
+        base_rate = self.coupling_rate * math.exp(-self.coupling_energy / (k_B * temperature))
+
+        neighbours = lattice.get_neighbours(*self.get_position())
+        if any(lattice.is_occupied(nx, ny) for (nx, ny) in neighbours):
+            return 0 # disallow coupling when there are nearest neighbours to this monomer. This condition basically realizes the fact that monomers physically restrict each other (geometric hindrance) - a cleaner way of doing this is to disallow diffusion into sites that have monomers that are nearest neighbours, but this is fine also.
+        next_neighbours = lattice.get_next_nearest_neighbours(*self.get_position(), self.get_orientation()) # this could potentially be made faster sometime down the line
+        valid_partners = [lattice.grid[ny][nx] for (nx, ny) in next_neighbours if not lattice.grid[ny][nx] == None and lattice.grid[ny][nx].get_orientation() != self.get_orientation()]
+        return len(valid_partners) * base_rate
+
+    def calculate_rotation_rate(self, lattice):
+        """
+        Calculate the rotation rate for this monomer.
+        Currently independent of the local environment.
+
+        Args:
+            lattice (Lattice): The lattice object.
+
+        Returns:
+            float: Rotation rate.
+        """
+        temperature = lattice.temperature
+        return 2 * self.rotation_rate * math.exp(-self.rotation_energy / (k_B * temperature)) if not self.coupled else 0
+
+    def calculate_total_rate(self, lattice):
+        """
+        Calculate the total rate for this monomer by summing rates for all actions.
+
+        Args:
+            lattice (Lattice): The lattice object.
+
+        Returns:
+            float: Total rate for the monomer.
+        """
+        return (
+            self.calculate_diffusion_rate(lattice) +
+            self.calculate_coupling_rate(lattice) +
+            self.calculate_rotation_rate(lattice)
+        )
+
+
+        def action(self, lattice):
+            '''
+            Runs all actions a monomer can perform in succession.
+            '''
+            self.diffuse(lattice)
+            self.rotate(lattice)
+            self.couple(lattice)
