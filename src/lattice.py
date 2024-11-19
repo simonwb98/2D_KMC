@@ -3,7 +3,7 @@ import random
 import numpy as np
 
 class Lattice:
-    def __init__(self, width, rotational_symmetry, periodic = False, temperature = 300):
+    def __init__(self, width, rotational_symmetry, periodic = False, temperature = 600):
         self.width = width
         self.height = width
         self.rotational_symmetry = rotational_symmetry
@@ -165,8 +165,8 @@ class Lattice:
                 if current not in visited and is_cell_boundary(current):
                     visited.add(current)
                     boundary.add(current)
-                    neighbors = self.get_neighbours(*current)
-                    stack.extend(neighbors)
+                    neighbours = self.get_neighbours(*current)
+                    stack.extend(neighbours)
             
             return boundary
 

@@ -50,7 +50,7 @@ class Monomer:
 
     def diffuse(self, lattice):
         x, y = self.get_position()
-        neighbors = lattice.get_cached_neighbors(x, y, self.get_orientation())
+        neighbors = lattice.get_neighbours(x, y)
         unoccupied_sites = [site for site in neighbors if not lattice.is_occupied(*site)]
         if unoccupied_sites:
             x_new, y_new = random.choice(unoccupied_sites)
@@ -68,7 +68,7 @@ class Monomer:
         Perform coupling using cached next-nearest neighbors.
         """
         x, y = self.get_position()
-        next_nearest = lattice.get_cached_next_nearest_neighbors(x, y, self.orientation)
+        next_nearest = lattice.get_next_nearest_neighbours(x, y, self.orientation)
         candidates = [
             lattice.grid[ny][nx] for nx, ny in next_nearest
             if lattice.grid[ny][nx] and lattice.grid[ny][nx].orientation != self.orientation
