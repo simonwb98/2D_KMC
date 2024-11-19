@@ -92,7 +92,43 @@ class Lattice:
                 monomer.set_position(x, y)
                 self.grid[y][x] = monomer
             
-        
+    def randomly_place_monomers_at_edge(self, monomers):
+        """
+        Place monomers randomly at the edge of the lattice.
+
+        The edge is defined as lattice sites along the boundary:
+        - Top row (y = 0)
+        - Bottom row (y = height - 1)
+        - Left column (x = 0)
+        - Right column (x = width - 1)
+
+        Args:
+            monomers (list): List of monomer objects to place.
+        """
+        # Define edge coordinates
+        edge_coords = []
+
+        # Top and bottom rows
+        for x in range(self.width):
+            edge_coords.append((x, 0))  # Top row
+            edge_coords.append((x, self.height - 1))  # Bottom row
+
+        # Left and right columns
+        for y in range(1, self.height - 1):  # Avoid duplicates at corners
+            edge_coords.append((0, y))  # Left column
+            edge_coords.append((self.width - 1, y))  # Right column
+
+        # Ensure edge sites are unique
+        edge_coords = list(set(edge_coords))
+
+        # Place monomers at random edge positions
+        for monomer in monomers:
+            if edge_coords:
+                x, y = random.choice(edge_coords)
+                self.place_monomer(monomer, x, y)
+                edge_coords.remove((x, y))  # Prevent reuse of the same site
+            else:
+                raise ValueError("Not enough edge sites to place all monomers.") 
 
     def remove_monomer(self, x, y):
         if self.is_occupied(x, y):

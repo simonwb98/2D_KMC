@@ -63,7 +63,7 @@ def grow_dimer(lattice, monomer_params, total_monomers, max_steps=1e5):
 
     for _ in range(total_monomers - 2):
         new_monomer = Monomer(*monomer_params)
-        lattice.randomly_place_monomers([new_monomer])
+        lattice.randomly_place_monomers_at_edge([new_monomer])
         monomers.append(new_monomer)
 
         # Run kMC simulation for this monomer to couple
@@ -83,16 +83,16 @@ def main():
     Main method to run the kinetic Monte Carlo simulation.
     """
     # Initialize the lattice
-    lattice = Lattice(width=20, rotational_symmetry=6, periodic=True)
+    lattice = Lattice(width=100, rotational_symmetry=6, periodic=True)
 
     # Create monomers with example parameters
-    monomer_params = ["A", 1e12, 0.3, 1e12, 1, 1e12, 0.5]
+    monomer_params = ["A", 1e13, 0.2, 1e13, 0.1, 1e13, 0]
     # monomer_type, diffusion_rate, diffusion_energy, rotation_rate, rotation_energy, coupling_rate, coupling_energy
 
 
     # Optional: Grow dimer for demonstration
-    total_monomers = 30
-    max_steps = 100_000
+    total_monomers = 400
+    max_steps = 1_000_000
     print("Starting dimer growth simulation...")
     lattice, monomers = grow_dimer(lattice, monomer_params, total_monomers=total_monomers, max_steps=max_steps)
     plot_final_state(lattice, monomers)
