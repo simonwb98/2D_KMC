@@ -152,10 +152,6 @@ def kmc_simulation(lattice, monomers, max_steps=1e5):
         # Step 4: Perform the selected event
         perform_event(monomer, action, lattice)
 
-        # Debugging information for each step
-        if step % 100 == 0 or step == max_steps - 1:
-            print(f"Step {step}: Time = {time:.6f}, Event = ({action}, {monomer.get_position()})")
-
     print(f"Simulation completed in {time:.6f} time units after {step+1} steps.")
     return time
 

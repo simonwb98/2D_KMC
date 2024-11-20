@@ -63,7 +63,7 @@ def grow_dimer(lattice, monomer_params, total_monomers, max_steps=1e5):
 
     for _ in range(total_monomers - 2):
         new_monomer = Monomer(*monomer_params)
-        lattice.randomly_place_monomers_at_edge([new_monomer])
+        lattice.randomly_place_monomers([new_monomer])
         monomers.append(new_monomer)
 
         # Run kMC simulation for this monomer to couple
@@ -83,7 +83,7 @@ def main():
     Main method to run the kinetic Monte Carlo simulation.
     """
     # Initialize the lattice
-    lattice = Lattice(width=100, rotational_symmetry=6, periodic=True)
+    lattice = Lattice(width=500, rotational_symmetry=6, periodic=True)
 
     # Create monomers with example parameters
     monomer_params = ["A", 1e13, 0.2, 1e13, 0.1, 1e13, 0]
@@ -91,18 +91,146 @@ def main():
 
 
     # Optional: Grow dimer for demonstration
-    total_monomers = 400
+    total_monomers = 10_000
     max_steps = 1_000_000
     print("Starting dimer growth simulation...")
     lattice, monomers = grow_dimer(lattice, monomer_params, total_monomers=total_monomers, max_steps=max_steps)
     plot_final_state(lattice, monomers)
     # print(f"Dimer growth simulation completed in {total_time:.2f} units.")
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
 """ 
 
 """ ### Nucleation Sites
+
+def initialize_dimers_hexagonal(lattice, monomer_params, spacing, boundary_margin):
+    """
+    Initialize dimers in a hexagonal arrangement on the lattice with even spacing,
+    avoiding the boundary by a specified margin.
+
+    Args:
+        lattice (Lattice): The lattice object.
+        monomer_params (dict): Parameters for monomers.
+        spacing (int): Distance between centers of neighboring dimers.
+        boundary_margin (int): Margin within which dimers cannot be initialized.
+
+    Returns:
+        list: A list containing all initialized monomers (dimers).
+    """
+    all_monomers = []
+    rows = (lattice.height - 2 * boundary_margin) // spacing
+    cols = (lattice.height - 2 * boundary_margin) // spacing
+
+    for i in range(rows + 2):
+        for j in range(cols + 2):
+            # Calculate positions based on hexagonal grid with boundary margin
+            x_center = j * spacing + (spacing // 2 if i % 2 == 1 else 0) + boundary_margin
+            y_center = i * int(spacing * (3 ** 0.5) // 2) + boundary_margin
+
+            # Ensure positions are within lattice bounds
+            if x_center >= lattice.width - boundary_margin or y_center >= lattice.height - boundary_margin:
+                continue
+
+            if not lattice.is_occupied(x_center, y_center):
+                monomer_1 = Monomer(*monomer_params)
+                monomer_1.set_position(x_center, y_center)
+
+                # Get next-nearest neighbors and place the second monomer
+                if lattice.rotational_symmetry == 6:
+                    orientation_1 = monomer_1.get_orientation()
+                    next_nearest_neighbours = lattice.get_next_nearest_neighbours(x_center, y_center, orientation_1)
+
+                    # Ensure there's a valid position for the second monomer
+                    if not next_nearest_neighbours:
+                        continue
+
+                    x_2, y_2 = random.choice(next_nearest_neighbours)
+                    if lattice.is_occupied(x_2, y_2):
+                        continue
+
+                    monomer_2 = Monomer(*monomer_params)
+                    monomer_2.set_position(x_2, y_2)
+                    monomer_2.set_orientation(orientation_1 + 180 if orientation_1 == 0 else 0)
+                    monomer_1.couple_with(monomer_2)
+
+                    # Place the monomers on the lattice
+                    lattice.place_monomer(monomer_1, x_center, y_center)
+                    lattice.place_monomer(monomer_2, x_2, y_2)
+
+                    # Add to the list of all monomers
+                    all_monomers.extend([monomer_1, monomer_2])
+
+    return all_monomers
+
+
+def grow_dimers_hexagonal(lattice, monomer_params, total_monomers, spacing, boundary_margin, max_steps=1e5):
+    """
+    Grow dimers initialized in a hexagonal arrangement by sequentially adding monomers,
+    avoiding the boundary by a specified margin.
+
+    Args:
+        lattice (Lattice): The lattice object.
+        monomer_params (dict): Parameters for monomers.
+        total_monomers (int): Total number of monomers to add.
+        spacing (int): Distance between centers of neighboring dimers.
+        boundary_margin (int): Margin within which dimers cannot be initialized.
+        max_steps (int): Maximum number of kMC steps.
+
+    Returns:
+        tuple: The lattice and the list of all monomers.
+    """
+    # Initialize dimers in hexagonal arrangement
+    monomers = initialize_dimers_hexagonal(lattice, monomer_params, spacing, boundary_margin)
+    total_time = 0
+
+    # Add monomers sequentially
+    for _ in range(total_monomers - len(monomers)):
+        new_monomer = Monomer(*monomer_params)
+        lattice.randomly_place_monomers([new_monomer])
+        monomers.append(new_monomer)
+
+        # Run kMC simulation with all active monomers
+        time_spent = kmc_simulation(lattice, monomers, max_steps=max_steps)
+        total_time += time_spent
+
+        # Check if the monomer coupled; if not, remove it
+        if not new_monomer.coupled:
+            lattice.remove_monomer(*new_monomer.get_position())
+            monomers.remove(new_monomer)
+
+    print("Hexagonal dimer growth simulation completed.")
+    return lattice, monomers
+
+
+def main():
+    """
+    Main method to run the kinetic Monte Carlo simulation.
+    """
+    # Initialize the lattice
+    lattice = Lattice(width=50, rotational_symmetry=6, periodic=True)
+
+    # Create monomers with example parameters
+    monomer_params = ["A", 1e13, 0.2, 1e13, 0.1, 1e13, 0]
+    # monomer_type, diffusion_rate, diffusion_energy, rotation_rate, rotation_energy, coupling_rate, coupling_energy
+
+    # Grow dimers in hexagonal arrangement with boundary margin
+    total_monomers = 10
+    spacing = 60  # Distance between neighboring dimers
+    boundary_margin = 10  # Margin around the edges where dimers cannot be initialized
+    max_steps = 1_000_000
+    print("Starting hexagonal dimer growth simulation...")
+    lattice, monomers = grow_dimers_hexagonal(lattice, monomer_params, total_monomers=total_monomers, spacing=spacing, boundary_margin=boundary_margin, max_steps=max_steps)
+    plot_final_state(lattice, monomers)
+    # Add optional analysis
+    analyze_structure(lattice, monomers)
+    print("Simulation and analysis completed.")
+
+if __name__ == "__main__":
+    main()
+
+
+
 """ 
 def main():
     p_c = 0.1

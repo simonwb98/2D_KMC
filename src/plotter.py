@@ -12,12 +12,13 @@ def update_hexagonal_grid(lattice, monomers, ax):
     """
     ax.clear()
 
-    # Loop through all valid lattice coordinates and plot circles at each point
+    """ # Loop through all valid lattice coordinates and plot circles at each point
     for (x, y) in lattice.lattice_coord:
         # Adjust x-position to create the staggered hexagonal effect
         x_offset = x + 0.5 if y % 2 != 0 else x
 
         ax.add_patch(plt.Circle((x_offset, y), 0.3, facecolor='lightgray', edgecolor='black', lw=1))
+    """
 
     # Plot the monomers' positions
     for monomer in monomers:
