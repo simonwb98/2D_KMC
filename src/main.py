@@ -63,7 +63,7 @@ def grow_dimer(lattice, monomer_params, total_monomers, max_steps=1e5):
 
     for _ in range(total_monomers - 2):
         new_monomer = Monomer(*monomer_params)
-        lattice.randomly_place_monomers([new_monomer])
+        lattice.randomly_place_monomers_at_edge([new_monomer])
         monomers.append(new_monomer)
 
         # Run kMC simulation for this monomer to couple
@@ -202,6 +202,48 @@ def grow_dimers_hexagonal(lattice, monomer_params, total_monomers, spacing, boun
     print("Hexagonal dimer growth simulation completed.")
     return lattice, monomers
 
+def grow_dimer_target_coupled(lattice, monomer_params, target_coupled_monomers=100, max_steps=1e5):
+    """
+    Grow a dimer by sequentially adding monomers until the target number of coupled monomers is reached.
+
+    Args:
+        lattice (Lattice): The lattice object.
+        monomer_params (dict): Parameters for monomers.
+        target_coupled_monomers (int): Target number of monomers to couple.
+        max_steps (int): Maximum number of kMC steps per monomer.
+
+    Returns:
+        Lattice: The final lattice configuration.
+        list: The final list of monomers.
+    """
+    # Initialize the dimer
+    dimer = initialize_dimer(lattice, monomer_params)
+
+    # Add monomers sequentially
+    monomers = dimer
+    coupled_monomers = len(dimer)
+    total_time = 0
+
+    while coupled_monomers < target_coupled_monomers:
+        new_monomer = Monomer(*monomer_params)
+        lattice.randomly_place_monomers_at_edge([new_monomer])
+        monomers.append(new_monomer)
+
+        # Run kMC simulation for this monomer to couple
+        time_spent = kmc_simulation(lattice, monomers, max_steps=max_steps)
+        total_time += time_spent
+
+        # Check if the monomer coupled
+        if new_monomer.coupled:
+            coupled_monomers += 1
+        else:
+            # Remove monomer if it didn't couple
+            lattice.remove_monomer(*new_monomer.get_position())
+            monomers.remove(new_monomer)
+
+    print(f"Growth completed with {coupled_monomers} coupled monomers.")
+    return lattice, monomers
+
 
 def main():
     """
@@ -226,9 +268,128 @@ def main():
     analyze_structure(lattice, monomers)
     print("Simulation and analysis completed.")
 
+### Batch Analysis (will be run on cluster)
+
+import csv
+
+def main():
+    """
+    Main method to run a parameter sweep over energy values and analyze results.
+    """
+    # Energy ranges
+    diffusion_energies = np.linspace(0.1, 0.5, 5)
+    rotation_energies = np.linspace(0.05, 0.3, 6)
+    coupling_energies = np.linspace(0.5, 2, 16)
+
+    num_simulations_per_triplet = 10
+    target_coupled_monomers = 100  # Stop each simulation when 100 monomers are coupled
+    max_steps = 1_000_000
+    width = 100
+
+    # Store aggregated results
+    aggregated_results = []
+
+    # Loop over energy triplets
+    for diff_energy in diffusion_energies:
+        for rot_energy in rotation_energies:
+            for coup_energy in coupling_energies:
+                print(f"Running simulations for energies: diffusion={diff_energy}, "
+                      f"rotation={rot_energy}, coupling={coup_energy}")
+
+                # Update monomer parameters for this triplet
+                monomer_params = ["A", 1e13, diff_energy, 1e13, rot_energy, 1e13, coup_energy]
+
+                # Initialize containers for results
+                all_neighbour_freqs = []
+                all_radii = []
+                all_radii_of_gyration = []
+
+                # Run multiple simulations for this triplet
+                for sim in range(num_simulations_per_triplet):
+                    lattice = Lattice(width, rotational_symmetry=6, periodic=True)
+                    _, monomers = grow_dimer_target_coupled(
+                        lattice, monomer_params, 
+                        target_coupled_monomers=target_coupled_monomers, 
+                        max_steps=max_steps
+                    )
+
+                    # Analyze structure and collect results
+                    neighbour_freq, radius, radius_of_gyration = analyze_structure(lattice, monomers)
+                    all_neighbour_freqs.append(neighbour_freq)
+                    all_radii.append(radius)
+                    all_radii_of_gyration.append(radius_of_gyration)
+
+                # Average results for this triplet
+                # Average neighbour frequencies
+                combined_freqs = {}
+                for freq in all_neighbour_freqs:
+                    for degree, count in freq.items():
+                        combined_freqs[degree] = combined_freqs.get(degree, 0) + count
+
+                averaged_neighbour_freq = {degree: count / num_simulations_per_triplet for degree, count in combined_freqs.items()}
+
+                # Average radius and radius of gyration
+                avg_radius = np.mean(all_radii)
+                std_radius = np.std(all_radii)
+                avg_radius_of_gyration = np.mean(all_radii_of_gyration)
+                std_radius_of_gyration = np.std(all_radii_of_gyration)
+
+                aggregated_results.append({
+                    "diffusion_energy": diff_energy,
+                    "rotation_energy": rot_energy,
+                    "coupling_energy": coup_energy,
+                    "averaged_neighbour_freq": averaged_neighbour_freq,
+                    "avg_radius": avg_radius,
+                    "std_radius": std_radius,
+                    "avg_radius_of_gyration": avg_radius_of_gyration,
+                    "std_radius_of_gyration":std_radius_of_gyration
+                })
+
+    # Save aggregated results to a CSV file
+    save_results_to_csv(aggregated_results, r"data\cluster_results.csv")
+
+    print("Parameter sweep completed. Results saved to 'cluster_results.csv'.")
+
+def save_results_to_csv(results, filename):
+    """
+    Save aggregated results to a CSV file.
+
+    Args:
+        results (list of dict): Aggregated results to save.
+        filename (str): Output file name.
+    """
+    with open(filename, mode="w", newline="") as file:
+        writer = csv.writer(file)
+        # Write header
+        header = [
+            "Diffusion Energy", 
+            "Rotation Energy", 
+            "Coupling Energy", 
+            "Averaged Neighbour Frequency", 
+            "Average Radius", 
+            "Standard Dev Radius",
+            "Average Radius of Gyration",
+            "Standard Dev ROG"
+        ]
+        writer.writerow(header)
+
+        # Write rows
+        for result in results:
+            writer.writerow([
+                result["diffusion_energy"],
+                result["rotation_energy"],
+                result["coupling_energy"],
+                result["averaged_neighbour_freq"],
+                result["avg_radius"],
+                result["std_radius"],
+                result["avg_radius_of_gyration"],
+                result["std_radius_of_gyration"]
+            ])
+
+
+
 if __name__ == "__main__":
     main()
-
 
 
 """ 

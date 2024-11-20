@@ -110,13 +110,17 @@ class Lattice:
 
         # Top and bottom rows
         for x in range(self.width):
-            edge_coords.append((x, 0))  # Top row
-            edge_coords.append((x, self.height - 1))  # Bottom row
+            if not self.is_occupied(x, 0):
+                edge_coords.append((x, 0))  # Top row
+            if not self.is_occupied(x, self.height - 1):
+                edge_coords.append((x, self.height - 1))  # Bottom row
 
         # Left and right columns
         for y in range(1, self.height - 1):  # Avoid duplicates at corners
-            edge_coords.append((0, y))  # Left column
-            edge_coords.append((self.width - 1, y))  # Right column
+            if not self.is_occupied(0, y):
+                edge_coords.append((0, y))  # Left column
+            if not self.is_occupied(self.width - 1, y):
+                edge_coords.append((self.width - 1, y))  # Right column
 
         # Ensure edge sites are unique
         edge_coords = list(set(edge_coords))
