@@ -127,12 +127,12 @@ def main():
     Main method to run a parameter sweep over energy values and analyze results.
     """
     # Energy ranges
-    diffusion_energies = np.linspace(0.5, 1.2, 1)
-    rotation_energies = np.linspace(0.6, 1.5, 1)
-    coupling_energies = np.linspace(1, 1.1, 1)
+    diffusion_energies = np.linspace(0.5, 1.2, 5)
+    rotation_energies = np.linspace(0.6, 1.5, 5)
+    coupling_energies = np.linspace(0.4, 1.1, 5)
 
     num_simulations_per_triplet = 1
-    target_coupled_monomers = 60  # Stop each simulation when 100 monomers are coupled
+    target_coupled_monomers = 60 # stop simulation once 60 monomers have coupled
     max_steps = 1_000_000
     width = 25
 
