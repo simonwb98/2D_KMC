@@ -88,7 +88,7 @@ def plot_final_state(lattice, monomers):
     update_hexagonal_grid(lattice, monomers, ax)
     plt.show()
 
-def plot_analysis_results(neighbor_frequencies, effective_radius, lattice, monomers):
+def plot_analysis_results(neighbor_frequencies, effective_radius, lattice, monomers, defects=False, herringbone=False):
     """Plot the polymer structure with the radius of gyration and the histogram of coupled neighbors."""
     
     fig, ax = plt.subplots(1, 2, figsize=(14, 7)) 
@@ -127,7 +127,44 @@ def plot_analysis_results(neighbor_frequencies, effective_radius, lattice, monom
             lw=2
         )
         ax[0].add_patch(triangle)
+    
+    # plot the defects' positions
+    if defects:
+        for defect in defects:
+            x, y = defect.position
+            if y % 2 != 0:
+                x += 0.5  # offset for odd rows
 
+            color = 'green' if defect.nucleating else 'red'
+            
+            circ = RegularPolygon(
+                (x, y),
+                numVertices=8,
+                radius=0.3,
+                facecolor=color,
+                edgecolor="black",
+                lw=2
+            )
+            ax[0].add_patch(circ)
+        
+    if herringbone:
+        for defect in herringbone:
+            x, y = defect.position
+            if y % 2 != 0:
+                x += 0.5  # offset for odd rows
+
+            color = 'green' if defect.nucleating else 'red'
+            
+            circ = RegularPolygon(
+                (x, y),
+                numVertices=8,
+                radius=0.3,
+                facecolor=color,
+                edgecolor="black",
+                lw=2
+            )
+            ax[0].add_patch(circ)
+        
     # calculate the center of mass for the polymer
     x_positions = [monomer.position[0] for monomer in monomers]
     y_positions = [monomer.position[1] for monomer in monomers]

@@ -9,7 +9,7 @@ def analyze_structure(lattice, monomers):
     neighbour_frequencies = Counter()
     for monomer in monomers:
         coupled_neighbours = sum(1 for neighbour in lattice.get_next_nearest_neighbours(*monomer.get_position(), monomer.get_orientation()) 
-                                if lattice.is_occupied(*neighbour) and lattice.grid[neighbour[1]][neighbour[0]].coupled)
+                                if lattice.is_occupied(*neighbour) and (lattice.grid[neighbour[1]][neighbour[0]].coupled))
         neighbour_frequencies[coupled_neighbours] += 1
     
     print("Frequency of coupled neighbours:")
