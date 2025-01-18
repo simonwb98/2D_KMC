@@ -8,7 +8,7 @@ import math
 
 
 class Lattice:
-    def __init__(self, width, rotational_symmetry, wall=[(0,0), 0, 0], periodic = False, temperature = 300):
+    def __init__(self, width, rotational_symmetry, wall=False, periodic = False, temperature = 300):
         self.width = width
         self.height = width
         self.rotational_symmetry = rotational_symmetry
@@ -17,7 +17,8 @@ class Lattice:
         self.lattice_coord = []
         self.temperature = temperature # in K
         self.substrate_properties = {}
-        self.define_grid()
+
+        
         self.wall = wall
         if wall:
             # Wall should be a list of length 3. The first parameter determines the direction of the wall "horiz" or "vert", the second sets the position,
@@ -26,6 +27,13 @@ class Lattice:
             # ex) wall=["horiz", 3, 0.3, 0.1]
             self.wall_params = wall
             self.wall_grid = self.make_wall(self.wall_params[0], self.wall_params[1])
+
+        self.neighbours = {} # will be defined below
+        self.next_nearest_neighbours = {}
+
+        self.define_grid()
+        self.precompute_neighbors() # precompute neigbours and next nearest neighbours for more efficiency
+
 
     def define_grid(self):
         '''
@@ -42,6 +50,7 @@ class Lattice:
         
         lattice_coord = [(i, j) for i in range(self.width) for j in range(self.height)]
         return grid, lattice_coord
+
 
     def make_wall(self, direction, pos):
         '''
@@ -80,6 +89,55 @@ class Lattice:
                             m_default[i+1][j]=1
 
         return m_default
+
+
+    
+    def precompute_neighbors(self):
+        """
+        Precompute neighbors and next-nearest neighbors for each lattice site and orientation.
+        """
+
+        def get_neighbours(x, y):
+            even_row_offsets = [(-1, -1), (-1, 1)]
+            odd_row_offsets = [(1, -1), (1, 1)]
+            base_neighbours = [(x, y - 1), (x, y + 1), (x - 1, y), (x + 1, y)]
+            if y % 2 == 0:
+                diagonal_neighbours = [(x + dx, y + dy) for dx, dy in even_row_offsets]
+            else:
+                diagonal_neighbours = [(x + dx, y + dy) for dx, dy in odd_row_offsets]
+            
+            neighbours = base_neighbours + diagonal_neighbours
+            return [self.wrap_coordinates(*coord) for coord in neighbours]
+
+        def get_next_nearest_neighbours(x, y, orientation):
+            # for now only 6-fold rotational symmetry
+            if self.rotational_symmetry == 6:
+                if orientation == 180:
+                    if y % 2 == 0:
+                        next_nearest = [(x, y - 2), (x + 1, y + 1), (x - 2, y + 1)]
+                    else:
+                        next_nearest = [(x, y - 2), (x + 2, y + 1), (x - 1, y + 1)]
+                elif orientation == 0:
+                    if y % 2 == 0:
+                        next_nearest = [(x - 2, y - 1), (x + 1, y - 1), (x, y + 2)]
+                    else:
+                        next_nearest = [(x - 1, y - 1), (x + 2, y - 1), (x, y + 2)]
+            else:
+                raise NotImplementedError("Next nearest neighbour is restricted to 6-fold rotational symmetries (for now).")
+            
+            next_nearest = list(map(lambda coord: self.wrap_coordinates(*coord), next_nearest))
+            return next_nearest
+
+        orientations = [0, 180]  
+
+        for x in range(self.width):
+            for y in range(self.height):
+                for orientation in orientations:
+                    # Compute neighbors and next-nearest neighbors for each orientation
+                    self.neighbours[(x, y)] = get_neighbours(x, y)
+                    self.next_nearest_neighbours[(x, y, orientation)] = get_next_nearest_neighbours(x, y, orientation)
+
+    
 
     def is_member(self, x, y):
         if (x, y) not in self.lattice_coord:
@@ -184,7 +242,7 @@ class Lattice:
                 (x, y) = random.choice(unoccupied)
                 monomer.set_position(x, y)
                 self.grid[y][x] = monomer
- 
+
     # Identical to randomly_place_monomers, just for defects
     def randomly_place_defects(self, defects):
         for defect in defects:
@@ -195,7 +253,33 @@ class Lattice:
                 defect.set_position(x, y)
                 self.dgrid[y][x] = defect
     
+    
+    def randomly_place_monomers_at_edge(self, monomers):
+        edge_coords = [] # define edge coordinates
 
+        for x in range(self.width):
+            if not self.is_occupied(x, 0):
+                edge_coords.append((x, 0))  # top row
+            if not self.is_occupied(x, self.height - 1):
+                edge_coords.append((x, self.height - 1))  # bottom row
+
+        for y in range(1, self.height - 1):  
+            if not self.is_occupied(0, y):
+                edge_coords.append((0, y))  # left column
+            if not self.is_occupied(self.width - 1, y):
+                edge_coords.append((self.width - 1, y))  # right column
+
+        # Ensure edge sites are unique
+        edge_coords = list(set(edge_coords))
+
+        # Place monomers at random edge positions
+        for monomer in monomers:
+            if edge_coords:
+                x, y = random.choice(edge_coords)
+                self.place_monomer(monomer, x, y)
+                edge_coords.remove((x, y))  # Prevent reuse of the same site
+            else:
+                raise ValueError("Not enough edge sites to place all monomers.") 
 
     def remove_monomer(self, x, y):
         if self.is_occupied(x, y):
@@ -221,6 +305,7 @@ class Lattice:
             defect.set_position(x_new, y_new)
         else:
             pass
+
 
     def get_neighbours(self, x, y):
         if self.rotational_symmetry == 4:
@@ -249,22 +334,55 @@ class Lattice:
                 n_wrap = list(map(lambda coord: self.wrap_coordinates(*coord), neighbours))
                 walls = [self.wall_grid[n_wrap[0][0]][n_wrap[0][1]], self.wall_grid[n_wrap[1][0]][n_wrap[1][1]], self.wall_grid[n_wrap[2][0]][n_wrap[2][1]], self.wall_grid[n_wrap[3][0]][n_wrap[3][1]], self.wall_grid[n_wrap[4][0]][n_wrap[4][1]], self.wall_grid[n_wrap[5][0]][n_wrap[5][1]]]
         return [n_wrap, walls]
+
+
+
+    
+    def find_cells(self):
+        """
+        Identify all enclosed areas (cells) in the lattice.
+
         
+        Returns:
+            List of sets: Each set contains the coordinates of monomers that form a cell.
+        """
+        visited = set()
+        cells = []
+
+        def is_cell_boundary(coord):
+            """Check if a coordinate is part of a potential cell boundary."""
+            x, y = coord
+            return self.is_occupied(x, y)
+
+        def explore_boundary(start):
+            """Explore the boundary of a cell starting from a given coordinate."""
+            stack = [start]
+            boundary = set()
+            
+            while stack:
+                current = stack.pop()
+                if current not in visited and is_cell_boundary(current):
+                    visited.add(current)
+                    boundary.add(current)
+                    neighbours = self.get_neighbours(*current)
+                    stack.extend(neighbours)
+            
+            return boundary
+
+        for coord in self.lattice_coord:
+            if coord not in visited and is_cell_boundary(coord):
+                boundary = explore_boundary(coord)
+                if boundary:  # A valid enclosed area
+                    cells.append(boundary)
+
+        return cells
+    
+    def get_neighbours(self, x, y):
+        return self.neighbours[(x, y)] # now modified to return the cached neighbour coordinates; should still return the same as before, avoided renaming to not have to change remaining scripts.
+            
+
     def get_next_nearest_neighbours(self, x, y, orientation):
-        # for now only 6-fold rotational symmetry
-        if self.rotational_symmetry == 6:
-            if orientation == 180:
-                if y % 2 == 0:
-                    next_nearest = [(x, y - 2), (x + 1, y + 1), (x - 2, y + 1)]
-                else:
-                    next_nearest = [(x, y - 2), (x + 2, y + 1), (x - 1, y + 1)]
-            elif orientation == 0:
-                if y % 2 == 0:
-                    next_nearest = [(x - 2, y - 1), (x + 1, y - 1), (x, y + 2)]
-                else:
-                    next_nearest = [(x - 1, y - 1), (x + 2, y - 1), (x, y + 2)]
-        else:
-            raise NotImplementedError("Next nearest neighbour is restricted to 6-fold rotational symmetries (for now).")
-        
-        next_nearest = list(map(lambda coord: self.wrap_coordinates(*coord), next_nearest))
-        return next_nearest
+        return self.next_nearest_neighbours[(x, y, orientation)]
+
+
+
