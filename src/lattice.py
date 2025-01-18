@@ -1,6 +1,7 @@
 # src/lattice.py
 import random
 import numpy as np
+
 from monomer import Monomer
 from defect import Defect
 import math
@@ -17,9 +18,15 @@ class Lattice:
         self.lattice_coord = []
         self.temperature = temperature # in K
         self.substrate_properties = {}
-        
-
         self.define_grid()
+        self.wall = wall
+        if wall:
+            # Wall should be a list of length 3. The first parameter determines the direction of the wall "horiz" or "vert", the second sets the position,
+            # the third determines the fraction of the original movement probability for a monomer to move away from a wall
+            # the fourth determines the fraction of the original movement probability for a monomer to move over a wall
+            # ex) wall=["horiz", 3, 0.3, 0.1]
+            self.wall_params = wall
+            self.wall_grid = self.make_wall(self.wall_params[0], self.wall_params[1])
 
     def define_grid(self):
         '''
@@ -36,8 +43,45 @@ class Lattice:
         
         lattice_coord = [(i, j) for i in range(self.width) for j in range(self.height)]
         return grid, lattice_coord
-    
-                
+
+    def make_wall(self, direction, pos):
+        '''
+        Returns a matrix with all zeros, with a 'wall'. 
+        The wall is either horizontal or verticle and is made of a line of 2's surrounded by 1's.
+        Input the type of wall (either "vert" or "horiz"), and the x or y position of the wall. 
+        '''
+        m_default = np.zeros((self.width,self.height))
+
+        # check if inputs are in range
+        if self.width<pos+1:
+            raise ValueError("x0 coordinate not within the size of the grid")
+        if pos<0:
+            raise ValueError("x0 coordinate not within the size of the grid")
+        if self.height<pos+1:
+            raise ValueError("y0 coordinate not within the size of the grid")
+        if pos<0:
+            raise ValueError("y0 coordinate not within the size of the grid")    
+        
+        if direction == "vert":
+            for i in range(self.height):
+                m_default[i][pos]=2
+            for i in range(self.height):
+                for j in range(self.width):
+                    if (m_default[i][j]==2):
+                        if (pos<self.width-1):
+                            m_default[i][j+1]=1
+
+        if direction == "horiz":
+            for i in range(self.width):
+                m_default[pos][i]=2
+            for i in range(self.width):
+                for j in range(self.height):
+                    if (m_default[i][j]==2):
+                        if (pos<self.height-1):
+                            m_default[i+1][j]=1
+
+        return m_default
+
     def is_member(self, x, y):
         if (x, y) not in self.lattice_coord:
             raise KeyError(f"Coordinates ({x}, {y}) not found in lattice with lattice sites: {self.lattice_coord}\n")
@@ -141,7 +185,7 @@ class Lattice:
                 (x, y) = random.choice(unoccupied)
                 monomer.set_position(x, y)
                 self.grid[y][x] = monomer
-            
+ 
     # Identical to randomly_place_monomers, just for defects
     def randomly_place_defects(self, defects):
         for defect in defects:
@@ -152,6 +196,7 @@ class Lattice:
                 defect.set_position(x, y)
                 self.dgrid[y][x] = defect
     
+
 
     def remove_monomer(self, x, y):
         if self.is_occupied(x, y):
@@ -186,9 +231,25 @@ class Lattice:
                 neighbours = [(x, y - 1), (x, y + 1), (x - 1, y), (x + 1, y), (x - 1, y - 1), (x - 1, y + 1)]
             else:
                 neighbours = [(x, y - 1), (x, y + 1), (x - 1, y), (x + 1, y), (x + 1, y - 1), (x + 1, y + 1)]
-
         neighbours = list(map(lambda coord: self.wrap_coordinates(*coord), neighbours))
-        return neighbours
+        return neighbours  
+
+    def get_neighbours_with_wall(self, x, y):
+        if self.rotational_symmetry == 4:
+            # I added to the output the values of the wall grid for each neighbour point
+            neighbours = [(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)]
+            n_wrap = list(map(lambda coord: self.wrap_coordinates(*coord), neighbours))
+            walls = [self.wall_grid[n_wrap[0][0]][n_wrap[0][1]], self.wall_grid[n_wrap[1][0]][n_wrap[1][1]], self.wall_grid[n_wrap[2][0]][n_wrap[2][1]], self.wall_grid[n_wrap[3][0]][n_wrap[3][1]]]
+        elif self.rotational_symmetry == 6:
+            if y % 2 == 0:
+                neighbours = [(x, y - 1), (x, y + 1), (x - 1, y), (x + 1, y), (x - 1, y - 1), (x - 1, y + 1)]
+                n_wrap = list(map(lambda coord: self.wrap_coordinates(*coord), neighbours))
+                walls = [self.wall_grid[n_wrap[0][0]][n_wrap[0][1]], self.wall_grid[n_wrap[1][0]][n_wrap[1][1]], self.wall_grid[n_wrap[2][0]][n_wrap[2][1]], self.wall_grid[n_wrap[3][0]][n_wrap[3][1]], self.wall_grid[n_wrap[4][0]][n_wrap[4][1]], self.wall_grid[n_wrap[5][0]][n_wrap[5][1]]]
+            else:
+                neighbours = [(x, y - 1), (x, y + 1), (x - 1, y), (x + 1, y), (x + 1, y - 1), (x + 1, y + 1)] 
+                n_wrap = list(map(lambda coord: self.wrap_coordinates(*coord), neighbours))
+                walls = [self.wall_grid[n_wrap[0][0]][n_wrap[0][1]], self.wall_grid[n_wrap[1][0]][n_wrap[1][1]], self.wall_grid[n_wrap[2][0]][n_wrap[2][1]], self.wall_grid[n_wrap[3][0]][n_wrap[3][1]], self.wall_grid[n_wrap[4][0]][n_wrap[4][1]], self.wall_grid[n_wrap[5][0]][n_wrap[5][1]]]
+        return [n_wrap, walls]
         
     def get_next_nearest_neighbours(self, x, y, orientation):
         # for now only 6-fold rotational symmetry
@@ -208,4 +269,3 @@ class Lattice:
         
         next_nearest = list(map(lambda coord: self.wrap_coordinates(*coord), next_nearest))
         return next_nearest
-    

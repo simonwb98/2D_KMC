@@ -49,13 +49,108 @@ class Monomer:
         self.coupled = True
         other.coupled = True
 
-    def diffuse(self, lattice):
-        diffusion_prob = self.diffusion_probability(lattice) # get probability
-        
-        if random.random() < diffusion_prob and not self.nucleating and not self.coupled: # based on the probability, decide if diffuse or not
-            neighbours = lattice.get_neighbours(*self.get_position())
-            x_new, y_new = random.choice(neighbours)
-            lattice.move_monomer(self, x_new, y_new)
+
+    def diffuse(self, lattice, first_time):
+        diffusion_prob = self.diffusion_probability(lattice) # get probability of moving
+        # the try block is in case no walls are built
+        try:
+            grid = lattice.wall_grid
+            divisor = lattice.rotational_symmetry
+            site0 = lattice.wall_params[2]
+            site2 = lattice.wall_params[3]
+
+            x_cur, y_cur = self.get_position()
+            if grid[y_cur][x_cur] == 1:
+                neighbours_grid = lattice.get_neighbours_with_wall(*self.get_position())[0] # get the coords of neighbours
+                neighbours_wall = lattice.get_neighbours_with_wall(*self.get_position())[1] # get the strengths of neighbouring cells
+                num_ones = neighbours_wall.count(1)                
+                num_twos = neighbours_wall.count(2)
+                num_other = divisor - num_twos - num_ones
+                index_ones = [i for i, x in enumerate(neighbours_wall) if (x == 1)]
+                index_twos = [i for i, x in enumerate(neighbours_wall) if x == 2]
+                index_other = [i for i, x in enumerate(neighbours_wall) if (x == 0)]
+
+                p_over_wall = num_twos*site2*diffusion_prob/divisor # probability of jumping over the wall
+                p_zero = num_other*site0*diffusion_prob/divisor # probability of moving to a 0
+                p_ones = num_ones*diffusion_prob/divisor # probability of moving along the wall
+                p_stay = 1 - (p_over_wall + p_zero + p_ones)
+                probabilities = [p_zero, p_ones, p_over_wall, p_stay]
+                prob_index = random.choices(range(len(probabilities)), weights=probabilities)[0] # choose a probability and return its index
+
+                landing_spots = []
+                if prob_index == 0:
+                    for index in index_other:
+                        landing_spots.append(neighbours_grid[index])
+                    x_new, y_new = random.choice(landing_spots)
+                    lattice.move_monomer(self, x_new, y_new)
+
+                elif prob_index == 1:
+                    for index in index_ones:
+                        landing_spots.append(neighbours_grid[index])
+                    x_new, y_new = random.choice(landing_spots)
+                    lattice.move_monomer(self, x_new, y_new)
+                    
+                elif prob_index == 2:
+                    for index in index_twos:
+                        landing_spots.append(neighbours_grid[index])
+                    x_new, y_new = random.choice(landing_spots)
+                    lattice.move_monomer(self, x_new, y_new)
+
+                else:
+                    if first_time:
+                        self.coupled = True
+                    else:
+                        self.couple_with_wall(lattice)
+
+            if grid[y_cur][x_cur] == 2:
+                neighbours_grid = lattice.get_neighbours_with_wall(*self.get_position())[0] # get the coords of neighbours
+                neighbours_wall = lattice.get_neighbours_with_wall(*self.get_position())[1] # get the strengths of neighbouring cells
+                num_ones = neighbours_wall.count(1)
+                num_twos = neighbours_wall.count(2)
+                num_other = divisor - num_twos - num_ones
+                index_ones = [i for i, x in enumerate(neighbours_wall) if (x == 1)]
+                index_twos = [i for i, x in enumerate(neighbours_wall) if x == 2]
+                index_other = [i for i, x in enumerate(neighbours_wall) if (x == 0)]
+
+                p_over_wall = num_ones*site0*diffusion_prob/divisor # probability of jumping over the wall
+                p_zero = num_other*site0*diffusion_prob/divisor # probability of moving to a 0
+                p_twos = num_twos*diffusion_prob/divisor # probability of moving along the wall
+                p_stay = 1 - (p_over_wall + p_zero + p_twos)
+                probabilities = [p_zero, p_over_wall, p_twos, p_stay]
+                prob_index = random.choices(range(len(probabilities)), weights=probabilities)[0] # choose a probability and return its index
+
+                landing_spots = []
+                if prob_index == 0:
+                    for index in index_other:
+                        landing_spots.append(neighbours_grid[index])
+                    x_new, y_new = random.choice(landing_spots)
+                    lattice.move_monomer(self, x_new, y_new)
+
+                elif prob_index == 1:
+                    for index in index_ones:
+                        landing_spots.append(neighbours_grid[index])
+                    x_new, y_new = random.choice(landing_spots)
+                    lattice.move_monomer(self, x_new, y_new)
+
+                elif prob_index == 2:
+                    for index in index_twos:
+                        landing_spots.append(neighbours_grid[index])
+                    x_new, y_new = random.choice(landing_spots)
+                    lattice.move_monomer(self, x_new, y_new)
+
+            else:
+                if random.random() < diffusion_prob and not self.nucleating and not self.coupled: # based on the probability, decide if diffuse or not
+                    neighbours = lattice.get_neighbours(*self.get_position())
+                    x_new, y_new = random.choice(neighbours)
+                    lattice.move_monomer(self, x_new, y_new)        
+            
+     
+        except AttributeError:
+            if random.random() < diffusion_prob and not self.nucleating and not self.coupled: # based on the probability, decide if diffuse or not
+                neighbours = lattice.get_neighbours(*self.get_position())
+                x_new, y_new = random.choice(neighbours)
+                lattice.move_monomer(self, x_new, y_new)
+            
 
     def rotate(self, lattice):
         rotation_prob = self.rotation_probability(lattice)
@@ -79,8 +174,6 @@ class Monomer:
                 partner = random.choice(neighbouring_monomers)
                 partner_neighbours = lattice.get_neighbours(*partner.get_position())
                 self.couple_with(partner)
-                return
-            
             elif neighboring_defects:
                 choice = random.choice(neighboring_defects)
                 x, y = choice.get_position()
@@ -97,11 +190,30 @@ class Monomer:
                 choice.nucleating = True
                             
                 return 
-                
-    def action(self, lattice):
+
+    def couple_with_wall(self, lattice):
+        coupling_prob = 1
+
+        if random.random() < coupling_prob:
+            neighbours = lattice.get_neighbours(*self.get_position())
+            if any(lattice.is_occupied(nx, ny) for (nx, ny) in neighbours):
+                return # disallow coupling when there are nearest neighbours to this monomer. This condition basically realizes the fact that monomers physically restrict each other (geometric hindrance) - a cleaner way of doing this is to disallow diffusion into sites that have monomers that are nearest neighbours, but this is fine also.
+            next_neighbours = lattice.get_next_nearest_neighbours(*self.get_position(), self.get_orientation()) # this could potentially be made faster sometime down the line
+            neighbouring_monomers = [lattice.grid[ny][nx] for (nx, ny) in next_neighbours if not lattice.grid[ny][nx] == None and lattice.grid[ny][nx].get_orientation() != self.get_orientation()]
+
+            if neighbouring_monomers:
+                partner = random.choice(neighbouring_monomers)
+                partner_neighbours = lattice.get_neighbours(*partner.get_position())
+
+                if any(lattice.is_occupied(nx, ny) for (nx, ny) in partner_neighbours):
+                    return
+
+                self.coupled = True
+                     
+    def action(self, lattice, first_time):
         '''
         Runs all actions a monomer can perform in succession.
         '''
-        self.diffuse(lattice)
+        self.diffuse(lattice, first_time)
         self.rotate(lattice)
         self.couple(lattice)
