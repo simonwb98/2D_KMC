@@ -20,13 +20,14 @@ def main():
     defect_params = [1.0, 0.00, 1.0]
     # diffusion_rate, diffusion_energy, nucleation_prob
 
-    lattice = Lattice(width=width, rotational_symmetry=6, periodic=True, wall=["horiz", 50, 0.0001, 0.0001])
+    # lattice = Lattice(width=width, rotational_symmetry=6, periodic=True, wall=["horiz", 50, 0.0001, 0.0001])
+    lattice = Lattice(width=width, rotational_symmetry=6, periodic=True, wall = False)
     # monomers = [Monomer(*monomer_params) for _ in range(50)]
 
     # slow_growth_simulation(lattice, monomer_params, total_monomers=200, max_steps=1e6)
-    # wall_simulation(lattice, monomer_params, total_monomers=200, max_steps=1e6)
+    # wall_simulation(lattice, monomer_params, total_monomers=200, max_steps=1e5)
 
-    defects = slow_growth_simulation(lattice, monomer_params,defect_params,defect_density=0.01, total_monomers=20, max_steps=1e5)
+    defects = slow_growth_simulation(lattice, monomer_params,defect_params,defect_density=0.001, total_monomers=600, max_steps=1e5)
 
     # place the monomers at initial positions
     # lattice.randomly_place_monomers(monomers)
@@ -59,7 +60,7 @@ def initialize_dimer(lattice, monomer_params):
         lattice.place_monomer(monomer_2, x_2, y_2)
     return (monomer_1, monomer_2)
 
-def introduce_new_monomer(lattice, new_monomer, monomers, first_time, defects, max_steps=1e5):
+def introduce_new_monomer(lattice, new_monomer, monomers, first_time, defects=False, max_steps=1e4):
 
     '''
     Introduces a new monomer on the lattice and executes the Monomer.action() method iteratively until 
@@ -69,9 +70,10 @@ def introduce_new_monomer(lattice, new_monomer, monomers, first_time, defects, m
     '''
     steps = 0
     while steps < max_steps:
-
-        for defect in defects:
-            defect.action(lattice)
+        if defects:
+            for defect in defects:
+                defect.action(lattice)
+              
         new_monomer.action(lattice, first_time)
         if new_monomer.coupled or new_monomer.nucleating:
             monomers.append(new_monomer)
@@ -127,8 +129,8 @@ def slow_growth_simulation(lattice, monomer_params, defect_params, defect_densit
 
     plot_analysis_results(neighbour_freq, radius, lattice, monomers) # some preliminary analysis of the resulting structure
     return defects
-  
-def wall_simulation(lattice, monomer_params, total_monomers, max_steps=1e5):
+
+def wall_simulation(lattice, monomer_params, total_monomers, max_steps=1e4):
     '''This simulation starts with a single monomer, allows it the couple to the wall, then spawns another monomer.
     '''
     monomers = []
@@ -136,7 +138,9 @@ def wall_simulation(lattice, monomer_params, total_monomers, max_steps=1e5):
     for i in range(total_monomers):
         new_monomer = Monomer(*monomer_params)
         lattice.randomly_place_monomers([new_monomer]) # initialize monomer with random position (note that this can also be inside the island on an unoccupied site)
-        introduce_new_monomer(lattice, new_monomer, monomers, first_time, defects, max_steps)
+        
+        introduce_new_monomer(lattice=lattice, new_monomer = new_monomer, monomers = monomers,\
+                              first_time=first_time, max_steps=max_steps)
         first_time = False
     
 if __name__ == "__main__":

@@ -8,11 +8,10 @@ import math
 
 
 class Lattice:
-    def __init__(self, width, rotational_symmetry, wall_params=[(0,0), 0, 0], periodic = False, temperature = 300):
+    def __init__(self, width, rotational_symmetry, wall=[(0,0), 0, 0], periodic = False, temperature = 300):
         self.width = width
         self.height = width
         self.rotational_symmetry = rotational_symmetry
-        self.wall_params = wall_params
         self.periodic = periodic
         self.grid = None # will be defined below
         self.lattice_coord = []
