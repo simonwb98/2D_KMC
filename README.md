@@ -2,7 +2,7 @@
 
 ## Introduction
 Implementation of a kinetic monte-carlo and stochastic simulation process are present in two separate branches of this repository. The "Complete" branch contains the stochastic simulation, 
-which is more robust for larger energy ranges, especially considering dehalogenation effects. The kinetic monte-carlo simulation is present in the 
+which is more robust for larger energy ranges, especially considering dehalogenation effects. The kinetic monte-carlo simulation is present in the KMC_Complete branch, and an identical procedure is used for that case.
 
 ## Operation
 The simulations, in both the KMC and stochastic cases, are conducted by running the main.py python script. In order to configure the settings of the simulations, open the main.py file and 
@@ -43,6 +43,6 @@ of the experimental data. One can also visualize these results using matplotlib.
 this plotting function is in "contour.py" within the data folder. This file will have to be altered to fit the needs of each simulation-experiment comparison procedure, but it is primarily a visualization
 tool.
 
-
+### For further references, the undergraduate thesis outlining the general theory and code architecture is provided in pdf form.
 
 
