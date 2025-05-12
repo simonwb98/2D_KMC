@@ -43,6 +43,6 @@ of the experimental data. One can also visualize these results using matplotlib.
 this plotting function is in "contour.py" within the data folder. This file will have to be altered to fit the needs of each simulation-experiment comparison procedure, but it is primarily a visualization
 tool.
 
-
+### For further references, the undergraduate thesis outlining the general theory and code architecture is provided in pdf form.
 
 
