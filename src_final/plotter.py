@@ -47,10 +47,10 @@ def update_hexagonal_grid(lattice, monomers, ax):
     ax.set_xticks([])
     ax.set_yticks([])
 
-def run_actions(lattice, monomers):
+def run_actions(lattice, monomers, first_time):
     """Perform diffusion and update the hexagonal plot."""
     for monomer in monomers:
-        monomer.action(lattice)
+        monomer.action(lattice, first_time)
 
 def update_plot(frame, lattice, monomers, ax):
     run_actions(lattice, monomers)
@@ -65,9 +65,10 @@ def plot_simulation(lattice, monomers, max_steps=1000, animate=False):
     Sets up the plot and runs the animation based on the current state of the simulation.
     """
     steps = 0
+    first_time = True
     while steps < max_steps:
-        run_actions(lattice, monomers)
-
+        run_actions(lattice, monomers, first_time)
+        first_time = False
         if all_monomers_coupled(monomers):
             print(f"Termination condition reached after {steps + 1} steps.")
             break
@@ -98,7 +99,7 @@ def plot_analysis_results(neighbor_frequencies, effective_radius, lattice, monom
     # loop through all valid lattice coordinates and plot circles at each point
     for (x, y) in lattice.lattice_coord:
         x_offset = x + 0.5 if y % 2 != 0 else x  # adjust for hexagonal staggered rows
-        ax[0].add_patch(plt.Circle((x_offset, y), 0.3, facecolor='lightgray', edgecolor='black', lw=1))
+        ax[0].add_patch(plt.Circle((x_offset, y), 0.2, facecolor='lightgray', edgecolor='black', lw=1))
 
     # plot the monomers' positions
     for monomer in monomers:
@@ -111,7 +112,7 @@ def plot_analysis_results(neighbor_frequencies, effective_radius, lattice, monom
         triangle = RegularPolygon(
             (x_mon, y_mon),
             numVertices=3,
-            radius=0.7,
+            radius=1,
             orientation=math.radians(orientation),
             facecolor=color,
             edgecolor="black",
@@ -127,10 +128,10 @@ def plot_analysis_results(neighbor_frequencies, effective_radius, lattice, monom
     y_center_of_mass = sum(y_positions) / len(y_positions)
 
     # add the circle representing the radius of gyration
-    circle = Circle((x_center_of_mass, y_center_of_mass), effective_radius, fill=False, color='green', lw=2, linestyle='--')
-    ax[0].add_patch(circle)
+    #circle = Circle((x_center_of_mass, y_center_of_mass), effective_radius, fill=False, color='green', lw=2, linestyle='--')
+    #ax[0].add_patch(circle)
     
-    ax[0].set_title('Polymer Structure with Radius of Gyration')
+    #ax[0].set_title('Polymer Structure with Radius of Gyration')
     ax[0].set_xlim(-0.5, lattice.width)
     ax[0].set_ylim(-0.5, lattice.height)
     ax[0].set_aspect('equal')
@@ -143,9 +144,10 @@ def plot_analysis_results(neighbor_frequencies, effective_radius, lattice, monom
     counts = [neighbor_frequencies[label] for label in labels]
     
     ax[1].bar(labels, counts, color='blue', edgecolor='black')
-    ax[1].set_title('Histogram of Coupled Neighbors')
-    ax[1].set_xlabel('Number of Coupled Neighbors')
-    ax[1].set_ylabel('Monomer Count')
+    #ax[1].set_title('Histogram of Coupled Neighbors', fontsize='large')
+    ax[1].set_xlabel('Number of Coupled Neighbors', fontsize='large')
+    ax[1].set_ylabel('Monomer Count', fontsize='large')
 
     plt.tight_layout()
-    plt.show()
+
+    return fig
