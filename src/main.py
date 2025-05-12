@@ -2,7 +2,7 @@
 
 from lattice import Lattice
 from monomer import Monomer
-# from plotter import plot_simulation, plot_final_state, plot_analysis_results
+from plotter import plot_simulation, plot_final_state, plot_analysis_results
 from analysis import analyze_structure
 from kinetic_monte_carlo import kmc_simulation
 import random
@@ -39,7 +39,7 @@ def initialize_dimer(lattice, monomer_params):
         monomer_1.couple_with(monomer_2)
         lattice.place_monomer(monomer_1, x_center, y_center)
         lattice.place_monomer(monomer_2, x_2, y_2)
-
+#    print("IS MY MONOMER StILL???? ", monomer_1.calculate_diffusion_rate(lattice))
     return [monomer_1, monomer_2]
 
 def grow_dimer(lattice, monomer_params, total_monomers, max_steps=1e5):
@@ -68,7 +68,7 @@ def grow_dimer(lattice, monomer_params, total_monomers, max_steps=1e5):
         monomers.append(new_monomer)
 
         # Run kMC simulation for this monomer to couple
-        time_spent = kmc_simulation(lattice, monomers, max_steps=max_steps)
+        time_spent, steps = kmc_simulation(lattice, monomers, max_steps=max_steps)
         total_time += time_spent
 
         # Check if the monomer coupled; if not, remove it
@@ -76,7 +76,7 @@ def grow_dimer(lattice, monomer_params, total_monomers, max_steps=1e5):
             lattice.remove_monomer(*new_monomer.get_position())
             monomers.remove(new_monomer)
 
-    print("Growth simulation completed.")
+    print(f"Growth simulation completed in {total_time} seconds.")
     return lattice, monomers
 
 def grow_dimer_target_coupled(lattice, monomer_params, target_coupled_monomers=100, max_steps=1e5):
@@ -100,16 +100,20 @@ def grow_dimer_target_coupled(lattice, monomer_params, target_coupled_monomers=1
     monomers = dimer
     coupled_monomers = len(dimer)
     total_time = 0
-
+    total_mons = 0
+    total_steps = 0
+    std_dev = []
     while coupled_monomers < target_coupled_monomers:
         new_monomer = Monomer(*monomer_params)
         lattice.randomly_place_monomers_at_edge([new_monomer])
         monomers.append(new_monomer)
 
         # Run kMC simulation for this monomer to couple
-        time_spent = kmc_simulation(lattice, monomers, max_steps=max_steps)
+        time_spent, steps = kmc_simulation(lattice, monomers, max_steps=max_steps)
+        std_dev.append(time_spent)
         total_time += time_spent
-
+        total_mons += 1 
+        total_steps += steps
         # Check if the monomer coupled
         if new_monomer.coupled:
             coupled_monomers += 1
@@ -117,88 +121,10 @@ def grow_dimer_target_coupled(lattice, monomer_params, target_coupled_monomers=1
             # Remove monomer if it didn't couple
             lattice.remove_monomer(*new_monomer.get_position())
             monomers.remove(new_monomer)
-
+    print(f"Avg diffusion time {total_time/total_mons} seconds.Error: {np.std(std_dev)/len(std_dev)}")
+    print(f"STEPS: {total_steps}")
     print(f"Growth completed with {coupled_monomers} coupled monomers.")
     return lattice, monomers
-
-
-def main():
-    """
-    Main method to run a parameter sweep over energy values and analyze results.
-    """
-    # Energy ranges
-    diffusion_energies = np.linspace(0.5, 1.2, 5)
-    rotation_energies = np.linspace(0.6, 1.5, 5)
-    coupling_energies = np.linspace(0.4, 1.1, 5)
-
-    num_simulations_per_triplet = 1
-    target_coupled_monomers = 60 # stop simulation once 60 monomers have coupled
-    max_steps = 1_000_000
-    width = 25
-
-    # Store aggregated results
-    aggregated_results = []
-
-    # Loop over energy triplets
-    for diff_energy in diffusion_energies:
-        for rot_energy in rotation_energies:
-            for coup_energy in coupling_energies:
-                print(f"Running simulations for energies: diffusion={diff_energy}, "
-                      f"rotation={rot_energy}, coupling={coup_energy}")
-
-                # Update monomer parameters for this triplet
-                monomer_params = ["A", 1e13, diff_energy, 1e13, rot_energy, 1e13, coup_energy]
-
-                # Initialize containers for results
-                all_neighbour_freqs = []
-                all_radii = []
-                all_radii_of_gyration = []
-
-                # Run multiple simulations for this triplet
-                for sim in range(num_simulations_per_triplet):
-                    lattice = Lattice(width, rotational_symmetry=6, periodic=True)
-                    _, monomers = grow_dimer_target_coupled(
-                        lattice, monomer_params, 
-                        target_coupled_monomers=target_coupled_monomers, 
-                        max_steps=max_steps
-                    )
-
-                    # Analyze structure and collect results
-                    neighbour_freq, radius, radius_of_gyration = analyze_structure(lattice, monomers)
-                    all_neighbour_freqs.append(neighbour_freq)
-                    all_radii.append(radius)
-                    all_radii_of_gyration.append(radius_of_gyration)
-
-                # Average results for this triplet
-                # Average neighbour frequencies
-                combined_freqs = {}
-                for freq in all_neighbour_freqs:
-                    for degree, count in freq.items():
-                        combined_freqs[degree] = combined_freqs.get(degree, 0) + count
-
-                averaged_neighbour_freq = {degree: count / num_simulations_per_triplet for degree, count in combined_freqs.items()}
-
-                # Average radius and radius of gyration
-                avg_radius = np.mean(all_radii)
-                std_radius = np.std(all_radii)
-                avg_radius_of_gyration = np.mean(all_radii_of_gyration)
-                std_radius_of_gyration = np.std(all_radii_of_gyration)
-
-                aggregated_results.append({
-                    "diffusion_energy": diff_energy,
-                    "rotation_energy": rot_energy,
-                    "coupling_energy": coup_energy,
-                    "averaged_neighbour_freq": averaged_neighbour_freq,
-                    "avg_radius": avg_radius,
-                    "std_radius": std_radius,
-                    "avg_radius_of_gyration": avg_radius_of_gyration,
-                    "std_radius_of_gyration":std_radius_of_gyration
-                })
-
-    # Save aggregated results to a CSV file
-    save_results_to_csv(aggregated_results, r"data\cluster_results.csv")
-
-    print("Parameter sweep completed. Results saved to 'cluster_results.csv'.")
 
 def save_results_to_csv(results, filename):
     """
@@ -212,11 +138,12 @@ def save_results_to_csv(results, filename):
         writer = csv.writer(file)
         # Write header
         header = [
-            "Diffusion Energy", 
-            "Rotation Energy", 
-            "Coupling Energy", 
-            "Averaged Neighbour Frequency", 
-            "Average Radius", 
+            "Diffusion Energy",
+            "Rotation Energy",
+            "Coupling Energy",
+            "Dehalogenation Energy",
+            "Averaged Neighbour Frequency",
+            "Average Radius",
             "Standard Dev Radius",
             "Average Radius of Gyration",
             "Standard Dev ROG"
@@ -229,6 +156,7 @@ def save_results_to_csv(results, filename):
                 result["diffusion_energy"],
                 result["rotation_energy"],
                 result["coupling_energy"],
+                result["dehalogen_energy"],
                 result["averaged_neighbour_freq"],
                 result["avg_radius"],
                 result["std_radius"],
@@ -237,6 +165,87 @@ def save_results_to_csv(results, filename):
             ])
 
 
+def main():
+    """
+    Main method to run a parameter sweep over energy values and analyze results.
+    """
+    # Energy ranges
+    diffusion_energies = np.linspace(0, 0.5, 6)
+    rotation_energies = [0]
+    coupling_energies = np.linspace(0, 0.5, 6)
+    dehalogen_energies = np.linspace(0, 0.5, 6)
+
+    num_simulations_per_triplet = 1
+    target_coupled_monomers = 50 # stop simulation once 60 monomers have coupled
+    max_steps = 1_000_000_000
+    width = 60
+
+    # Store aggregated results
+    aggregated_results = []
+
+    # Loop over energy triplets
+    for diff_energy in diffusion_energies:
+        for rot_energy in rotation_energies:
+            for coup_energy in coupling_energies:
+                for dehal_energy in dehalogen_energies:
+                    print(f"Running simulations for energies: diffusion={diff_energy}, "
+                      f"rotation={rot_energy}, coupling={coup_energy}")
+
+                    # Update monomer parameters for this triplet
+                    monomer_params = ["A", 1e13, diff_energy, 1e13, rot_energy, 1e13, coup_energy, 1e13, dehal_energy]
+
+                    # Initialize containers for results
+                    all_neighbour_freqs = []
+                    all_radii = []
+                    all_radii_of_gyration = []
+
+                    # Run multiple simulations for this triplet
+                    for sim in range(num_simulations_per_triplet):
+                        lattice = Lattice(width, rotational_symmetry=6, periodic=True)
+                        _, monomers = grow_dimer_target_coupled(
+                            lattice, monomer_params, 
+                            target_coupled_monomers=target_coupled_monomers, 
+                            max_steps=max_steps
+                        )
+
+                        # Analyze structure and collect results
+                        neighbour_freq, radius, radius_of_gyration = analyze_structure(lattice, monomers)
+                        all_neighbour_freqs.append(neighbour_freq)
+                        all_radii.append(radius)
+                        all_radii_of_gyration.append(radius_of_gyration)
+
+                    # Average results for this triplet
+                    # Average neighbour frequencies
+                    combined_freqs = {}
+                    for freq in all_neighbour_freqs:
+                        for degree, count in freq.items():
+                            combined_freqs[degree] = combined_freqs.get(degree, 0) + count
+
+                    averaged_neighbour_freq = {degree: count / num_simulations_per_triplet for degree, count in combined_freqs.items()}
+
+                    # Average radius and radius of gyration
+                    avg_radius = np.mean(all_radii)
+                    std_radius = np.std(all_radii)
+                    avg_radius_of_gyration = np.mean(all_radii_of_gyration)
+                    std_radius_of_gyration = np.std(all_radii_of_gyration)
+
+                    aggregated_results.append({
+                        "diffusion_energy": diff_energy,
+                        "rotation_energy": rot_energy,
+                        "coupling_energy": coup_energy,
+                        "dehalogen_energy": dehal_energy,
+                        "averaged_neighbour_freq": averaged_neighbour_freq,
+                        "avg_radius": avg_radius,
+                        "std_radius": std_radius,
+                        "avg_radius_of_gyration": avg_radius_of_gyration,
+                        "std_radius_of_gyration":std_radius_of_gyration
+                    })
+
+    # Save aggregated results to a CSV file
+    save_results_to_csv(aggregated_results, r"../data/zach_output.csv")
+    # Save aggregated results to a CSV file
+#    plot_analysis_results(neighbour_freq, radius, lattice, monomers)
+    print("Parameter sweep completed. Results saved to 'cluster_results.csv'.")
 
 if __name__ == "__main__":
     main()
