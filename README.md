@@ -1,7 +1,7 @@
 # 2D KMC
 
 ## Introduction
-Implementation of a kinetic monte-carlo and stochastic simulation process are present in two separate branches of this repository. The "Complete" branch contains the stochastic simulation, 
+Implementation of a kinetic monte-carlo and stochastic simulation process are present in two separate branches of this repository. The "main" branch contains the stochastic simulation, 
 which is more robust for larger energy ranges, especially considering dehalogenation effects. The kinetic monte-carlo simulation is present in the KMC_Complete branch, and an identical procedure is used for that case.
 
 ## Operation
@@ -29,7 +29,7 @@ It is important to note that the KMC simulation struggles with even small energy
 
 ## Analysis
 In order to compare the outputs of the simulations to experimental results, a set of self-contained analysis files is required. For image connectivity analysis of experimental STM images, the 
-STM-Island-Analysis.ipynb file may be used. It is found in the "data" folder on the "Complete" github branch, and only requires a path to the image (a .bmp file) in order to function. Before this analysis,
+STM-Island-Analysis.ipynb file may be used. It is found in the "data" folder on the "main" github branch, and only requires a path to the image (a .bmp file) in order to function. Before this analysis,
 it is important to crop the STM image down to a single island and to sharply contrast the background. The existing STM-Island-Analysis.ipynb file has an example of the proper format for the image 
 loaded into it. The easiest way to perform this preliminary image refinement is to use Gwyddion, a free software designed for analysis of AFM and STM images (https://gwyddion.net/presentations/tutorial-Gwyddion-basic-data-correction-Francois-Riguet-2012.pdf).
 
